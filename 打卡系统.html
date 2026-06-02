@@ -1,0 +1,2199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>考勤打卡系统 v3.2</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --success: #27ae60;
+            --danger: #e74c3c;
+            --gray: #95a5a6;
+            --bg: #f5f6fa;
+            --card: #ffffff;
+            --text: #2c3e50;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #e8ecf1 0%, #d5dbe3 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 400px;
+            background: var(--card);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.08);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1a73e8, #0d5bbd);
+            color: white;
+            padding: 20px 24px;
+            text-align: center;
+        }
+        .header .company {
+            font-size: 13px;
+            opacity: 0.9;
+            letter-spacing: 1px;
+        }
+        .header .system-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .time-section {
+            text-align: center;
+            padding: 28px 20px 20px;
+            background: #fafbfc;
+            border-bottom: 1px solid #eee;
+        }
+        .time-display {
+            font-size: 48px;
+            font-weight: 300;
+            color: var(--text);
+            letter-spacing: 2px;
+            font-variant-numeric: tabular-nums;
+            font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+        }
+        .date-display {
+            font-size: 14px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .punch-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 30px 20px;
+        }
+        .punch-btn {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            border: none;
+            color: white;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
+            transition: all 0.2s ease;
+            position: relative;
+            letter-spacing: 2px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .punch-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+        .punch-btn .fingerprint {
+            font-size: 40px;
+            line-height: 1;
+        }
+
+        .status-bar {
+            text-align: center;
+            padding: 0 24px 20px;
+            font-size: 13px;
+            color: #888;
+        }
+        .status-bar .overtime {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+        .fail-count {
+            color: #e67e22;
+            font-weight: 600;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s ease;
+        }
+        .modal-overlay.hidden {
+            display: none;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 360px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            padding: 24px 20px 20px;
+            position: relative;
+            animation: slideUp 0.25s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal h3 {
+            text-align: center;
+            font-size: 17px;
+            color: var(--text);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .modal .subtitle {
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 18px;
+        }
+        .modal .modal-content {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 18px;
+            text-align: center;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            position: relative;
+            min-height: 44px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 10px;
+            border: none;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 100px;
+            letter-spacing: 1px;
+            position: relative;
+        }
+        .btn:active {
+            transform: scale(0.96);
+        }
+        .btn.off-work {
+            background: #4CAF50;
+            color: white;
+        }
+        .btn.overtime-btn {
+            background: #e0e0e0;
+            color: #666;
+        }
+        .btn.off-work.disguised {
+            background: #e0e0e0;
+            color: #666;
+        }
+        .btn.overtime-btn.disguised {
+            background: #4CAF50;
+            color: white;
+        }
+        .btn.small {
+            padding: 8px 16px;
+            font-size: 13px;
+            min-width: 60px;
+        }
+        .btn.tiny {
+            padding: 4px 10px;
+            font-size: 11px;
+            min-width: 40px;
+        }
+
+        .countdown-bar {
+            height: 4px;
+            background: #e74c3c;
+            border-radius: 2px;
+            margin-bottom: 12px;
+            transition: width 0.1s linear;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #999;
+            margin: 10px 0;
+            justify-content: center;
+        }
+        .checkbox-row input {
+            width: 16px;
+            height: 16px;
+        }
+
+        .captcha-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            text-align: center;
+            letter-spacing: 4px;
+            margin: 8px 0;
+            outline: none;
+        }
+        .captcha-input:focus {
+            border-color: #1a73e8;
+        }
+
+        .btn.escaping {
+            position: absolute;
+            transition: all 0.08s ease;
+        }
+
+        .rotating-container {
+            animation: rotate 2s linear infinite;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .btn.transparent-btn {
+            opacity: 0.05;
+            background: #4CAF50;
+            color: white;
+        }
+
+        .hint-text {
+            font-size: 10px;
+            color: #bbb;
+            text-align: center;
+            margin-top: 6px;
+        }
+
+        @keyframes shake {
+            0%,100% { transform: translateX(0); }
+            25% { transform: translateX(6px); }
+            50% { transform: translateX(-6px); }
+            75% { transform: translateX(4px); }
+        }
+        .shaking {
+            animation: shake 0.4s infinite;
+        }
+
+        @keyframes pulseP {
+            0%,100% { transform: scale(1); box-shadow: 0 4px 15px rgba(76,175,80,0.4); }
+            50% { transform: scale(1.06); box-shadow: 0 6px 25px rgba(76,175,80,0.6); }
+        }
+
+        /* 失败提示弹窗 */
+        .fail-modal {
+            background: white;
+            border-radius: 16px;
+            width: 85%;
+            max-width: 340px;
+            padding: 28px 20px 22px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            animation: slideUp 0.25s ease;
+        }
+        .modal:has(.fail-modal) {
+            background: none;
+            border-radius: 0;
+            padding: 0;
+            box-shadow: none;
+            animation: none;
+            max-width: none;
+            overflow: visible;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .fail-modal .fail-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+        .fail-modal .fail-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 6px;
+        }
+        .fail-modal .fail-msg {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .fail-modal .fail-btn {
+            width: 100%;
+            padding: 12px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container" id="appContainer">
+        <div class="header">
+            <div class="company">🏢 包子科技有限公司</div>
+            <div class="system-name">考勤打卡系统 v3.2</div>
+        </div>
+
+        <div class="time-section">
+            <div class="time-display" id="timeDisplay">--:--:--</div>
+            <div class="date-display" id="dateDisplay"></div>
+        </div>
+
+        <div class="punch-area">
+            <button class="punch-btn" id="punchBtn" onclick="openPunchModal()">
+                <span class="fingerprint">🖐️</span>
+                点击打卡
+            </button>
+        </div>
+
+        <div style="text-align:center;padding:8px 0;">
+            <button id="cheatToggle" style="padding:6px 16px;font-size:13px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#999;cursor:pointer;" onclick="toggleCheat()">🔧 作弊模式：关</button>
+        </div>
+
+        <div class="status-bar">
+            <span>今日打卡状态：<span id="punchStatus">待打卡</span></span>
+            <br>
+            <span>本月累计加班：<span class="overtime" id="overtimeHours">0</span> 小时</span>
+            <br>
+            <span>打卡异常次数：<span class="fail-count" id="failCount">0</span> 次</span>
+        </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="modalOverlay">
+        <div class="modal" id="modalBox"></div>
+    </div>
+
+    <script>
+        // =============================================
+        // 全局状态
+        // =============================================
+        let currentLevel = 0;
+        let failCount = 0;
+        let overtimeHours = 0;
+        let modalOpen = false;
+        let levelTimers = [];
+        let totalLevels = 0;
+        let cheatMode = false;
+
+        // =============================================
+        // 关卡定义（a-q，共17关）
+        // =============================================
+        const allLevels = [
+            { id: 'a', name: 'a', failMsg: '考勤异常，请重新打卡。<br>提示：下次看清楚再点' },
+            { id: 'b', name: 'b', failMsg: '系统检测到您可能被按钮颜色误导。<br>温馨提示：灰色不一定代表禁用' },
+            { id: 'c', name: 'c', failMsg: '考勤确认超时。<br>系统已自动为您登记加班，时长：∞' },
+            { id: 'd', name: 'd', failMsg: '按钮位置与预期不符。<br>建议：相信直觉，别被表象迷惑' },
+            { id: 'e', name: 'e', failMsg: '您未在规定时间内完成操作。<br>那按钮确实越来越小，我们都看见了' },
+            { id: 'f', name: 'f', failMsg: '协议未完整阅读。<br>老板的消息：协议第十条后面还有内容，再翻翻' },
+            { id: 'g', name: 'g', failMsg: '按钮定位失败。<br>那东西跑得比你的年终奖还快' },
+            { id: 'h', name: 'h', failMsg: '考勤确认次数不足或点错了位置。<br>手指累了？这才50下' },
+            { id: 'i', name: 'i', failMsg: '安全验证未通过。<br>验证码都给你显示了，删掉996输入正确的很难吗' },
+            { id: 'j', name: 'j', failMsg: '确认操作中断。<br>松手太早了，再坚持一下就能下班' },
+            { id: 'k', name: 'k', failMsg: '考勤状态异常。<br>那些方块一个都没点对吧？' },
+            { id: 'l', name: 'l', failMsg: '选择错误。<br>黑暗中的按钮就像老板的心思，猜不透' },
+            { id: 'm', name: 'm', failMsg: '系统防御失败。<br>加班怪突破了防线，今天又是996的一天' },
+            { id: 'n', name: 'n', failMsg: '目标识别错误。<br>你射中了加班靶，恭喜获得加班券一张' },
+            { id: 'o', name: 'o', failMsg: '检测到未授权离岗行为。<br>老板的目光如炬，你无处可藏' },
+            { id: 'p', name: 'p', failMsg: '会议邀请已接受。<br>接下来的2小时你将在一场毫无意义的会议中度过' },
+            { id: 'q', name: 'q', failMsg: '面板操作异常。<br>重力感应说：今天宜加班，不宜下班' },
+        ];
+
+        // 关卡池
+        const beginnerPool = ['b', 'c', 'd', 'e', 'f'];
+        const intermediatePool = ['g', 'h', 'i', 'j', 'k', 'l', 'q'];
+        const advancedPool = ['m', 'n', 'o', 'p'];
+        let selectedLevels = [];
+
+        function generateLevels() {
+            const shuffled = (arr) => arr.sort(() => Math.random() - 0.5);
+            const result = [{ id: 'a', name: 'a', failMsg: '考勤异常，请重新打卡。<br>提示：下次看清楚再点' }];
+            const beginner = shuffled([...beginnerPool]).slice(0, 2);
+            const intermediate = shuffled([...intermediatePool]).slice(0, 3);
+            const advanced = [...advancedPool];
+            const allIds = [...result.map(l => l.id), ...beginner, ...intermediate, ...advanced];
+            selectedLevels = allIds.map(id => allLevels.find(l => l.id === id)).filter(Boolean);
+            totalLevels = selectedLevels.length;
+        }
+
+        // =============================================
+        // 时间更新
+        // =============================================
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('timeDisplay').textContent = now.toLocaleTimeString('zh-CN', { hour12: false });
+            document.getElementById('dateDisplay').textContent = now.toLocaleDateString('zh-CN', {
+                year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
+            });
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        function updateStatusDisplay() {
+            document.getElementById('failCount').textContent = failCount;
+            document.getElementById('overtimeHours').textContent = overtimeHours;
+            document.getElementById('punchStatus').textContent = failCount > 0 ? '打卡异常' : '待打卡';
+        }
+
+        function toggleCheat() {
+            if (!cheatMode) {
+                const pwd = prompt('请输入作弊密码：');
+                if (pwd !== '我爱公司') {
+                    if (pwd !== null) alert('密码错误，拒绝访问！');
+                    return;
+                }
+            }
+            cheatMode = !cheatMode;
+            const btn = document.getElementById('cheatToggle');
+            if (cheatMode) {
+                btn.textContent = '🔓 作弊模式：开';
+                btn.style.background = '#4CAF50';
+                btn.style.color = '#fff';
+                btn.style.borderColor = '#4CAF50';
+            } else {
+                btn.textContent = '🔧 作弊模式：关';
+                btn.style.background = '#fff';
+                btn.style.color = '#999';
+                btn.style.borderColor = '#ddd';
+            }
+        }
+
+        function openPunchModal() {
+            clearAllTimers();
+            modalOpen = true;
+            document.getElementById('modalOverlay').classList.remove('hidden');
+            renderLevel(selectedLevels[currentLevel]);
+            updateStatusDisplay();
+        }
+
+        function closeModal() {
+            clearAllTimers();
+            modalOpen = false;
+            document.getElementById('modalOverlay').classList.add('hidden');
+            document.getElementById('modalBox').innerHTML = '';
+            const outsideBtn = document.getElementById('outsideOffWorkBtn');
+            if (outsideBtn) outsideBtn.remove();
+        }
+
+        function clearAllTimers() {
+            levelTimers.forEach(t => {
+                if (t.type === 'interval' && t.id) clearInterval(t.id);
+                if (t.type === 'timeout' && t.id) clearTimeout(t.id);
+                if (t.type === 'cleanup' && typeof t.fn === 'function') t.fn();
+            });
+            levelTimers = [];
+        }
+
+        // =============================================
+        // 失败弹窗
+        // =============================================
+        function showFailModal(message) {
+            const overlay = document.getElementById('modalOverlay');
+            overlay.classList.remove('hidden');
+
+            const box = document.getElementById('modalBox');
+            
+            box.innerHTML = `
+                <div class="fail-modal">
+                    <div class="fail-icon">⚠️</div>
+                    <div class="fail-title">系统提示</div>
+                                        <div class="fail-msg">${message}</div>
+                    <button class="fail-btn" id="failConfirmBtn">确认</button>
+                </div>
+            `;
+
+            document.getElementById('failConfirmBtn').onclick = function() {
+                overlay.classList.add('hidden');
+                box.innerHTML = '';
+                modalOpen = false;
+                updateStatusDisplay();
+            };
+        }
+
+        // =============================================
+        // 成功弹窗（最后一关）
+        // =============================================
+        function showSuccessModal() {
+            const overlay = document.getElementById('modalOverlay');
+            overlay.classList.remove('hidden');
+
+            const now = new Date();
+            const box = document.getElementById('modalBox');
+            box.innerHTML = `
+                <div class="fail-modal">
+                    <div class="fail-icon">✅</div>
+                    <div class="fail-title">打卡成功</div>
+                    <div class="fail-msg">下班时间：${now.toLocaleTimeString('zh-CN', {hour12: false})}<br>今日历经 ${failCount} 次异常</div>
+                    <button class="fail-btn" id="successConfirmBtn" style="background:#4CAF50;">确认</button>
+                </div>
+            `;
+
+            document.getElementById('successConfirmBtn').onclick = function() {
+                overlay.classList.add('hidden');
+                box.innerHTML = '';
+                modalOpen = false;
+                currentLevel = 0;
+                failCount = 0;
+                overtimeHours = 0;
+                generateLevels();
+                updateStatusDisplay();
+            };
+        }
+
+        // =============================================
+        // 失败/成功处理
+        // =============================================
+        function handleFail(reason) {
+            if (!modalOpen) return;
+            failCount++;
+            overtimeHours++;
+            // 先取当前关卡的失败消息，再重置
+            const level = selectedLevels[currentLevel];
+            const msg = level ? level.failMsg : '考勤异常，请重新打卡';
+            closeModal();
+            if (!cheatMode) currentLevel = 0;
+            updateStatusDisplay();
+            showFailModal(msg);
+            console.log(`[失败] ${reason}`);
+        }
+
+        function handleSuccess() {
+            console.log('[DEBUG handleSuccess] 进入 - modalOpen:', modalOpen, 'currentLevel:', currentLevel, 'totalLevels:', totalLevels);
+            if (!modalOpen) { console.log('[DEBUG handleSuccess] modalOpen为false，直接return！'); return; }
+            currentLevel++;
+            if (currentLevel >= totalLevels) {
+                closeModal();
+                showSuccessModal();
+                currentLevel = 0;
+                failCount = 0;
+                overtimeHours = 0;
+            } else {
+                closeModal();
+                setTimeout(() => openPunchModal(), 400);
+            }
+        }
+
+        // =============================================
+        // 关卡路由
+        // =============================================
+        function renderLevel(level) {
+            const box = document.getElementById('modalBox');
+            box.innerHTML = '';
+            switch (level.id) {
+                case 'a': renderNormal(box); break;
+                case 'b': renderColorSwap(box); break;
+                case 'c': renderCountdown(box); break;
+                case 'd': renderSwapLoop(box); break;
+                case 'e': renderShrinkBtn(box); break;
+                case 'f': renderReadConfirm(box); break;
+                case 'g': renderEscapingBtn(box); break;
+                case 'h': renderClickCount(box); break;
+                case 'i': renderCaptcha(box); break;
+                case 'j': renderLongPress(box); break;
+                case 'k': renderSplitBtn(box); break;
+                case 'l': renderSpotlight(box); break;
+                case 'm': renderShooter(box); break;
+                case 'n': renderFPS(box); break;
+                case 'o': renderBossPatrol(box); break;
+                case 'p': renderMeetingStorm(box); break;
+                case 'q': renderGravityDrawer(box); break;
+                default: renderNormal(box);
+            }
+        }
+
+        // =============================================
+        // a - 正常弹窗
+        // =============================================
+        function renderNormal(box) {
+            box.innerHTML = `
+                <h3>考勤确认</h3>
+                <div class="subtitle">请确认今日考勤状态</div>
+                <div class="modal-content">请选择您的考勤状态：</div>
+                <div class="btn-row">
+                    <button class="btn off-work" id="btnOffWork">🏠 打卡下班</button>
+                    <button class="btn overtime-btn" id="btnOvertime">💼 自愿加班</button>
+                </div>
+            `;
+            document.getElementById('btnOffWork').onclick = handleSuccess;
+            document.getElementById('btnOvertime').onclick = () => handleFail('点了自愿加班');
+        }
+
+        // =============================================
+        // b - 颜色欺诈
+        // =============================================
+        function renderColorSwap(box) {
+            box.innerHTML = `
+                <h3>考勤确认</h3>
+                <div class="subtitle">请确认操作</div>
+                <div class="modal-content">请选择您要执行的操作：</div>
+                <div class="btn-row">
+                    <button class="btn off-work disguised" id="btnOffWork">🏠 打卡下班</button>
+                    <button class="btn overtime-btn disguised" id="btnOvertime">💼 自愿加班</button>
+                </div>
+            `;
+            document.getElementById('btnOffWork').onclick = handleSuccess;
+            document.getElementById('btnOvertime').onclick = () => handleFail('被颜色误导点了加班');
+        }
+
+        // =============================================
+        // c - 倒计时压迫
+        // =============================================
+        function renderCountdown(box) {
+            box.innerHTML = `
+                <h3>考勤确认</h3>
+                <div class="subtitle">超时将自动处理</div>
+                <div class="countdown-bar" id="countdownBar" style="width:100%;"></div>
+                <div class="modal-content" id="countdownText">剩余 3 秒</div>
+                <div class="btn-row">
+                    <button class="btn off-work" id="btnOffWork">🏠 打卡下班</button>
+                    <button class="btn overtime-btn" id="btnOvertime">💼 自愿加班</button>
+                </div>
+            `;
+            let cdInterval;
+            document.getElementById('btnOffWork').onclick = () => { clearInterval(cdInterval); handleSuccess(); };
+            document.getElementById('btnOvertime').onclick = () => { clearInterval(cdInterval); handleFail('点了加班'); };
+            let remaining = 2;
+            const bar = document.getElementById('countdownBar');
+            const text = document.getElementById('countdownText');
+            cdInterval = setInterval(() => {
+                remaining -= 0.1;
+                if (remaining <= 0) { clearInterval(cdInterval); if (modalOpen) handleFail('倒计时结束'); return; }
+                bar.style.width = (remaining / 3 * 100) + '%';
+                text.textContent = `剩余 ${remaining.toFixed(1)} 秒`;
+            }, 100);
+            levelTimers.push({ type: 'interval', id: cdInterval });
+        }
+
+        // =============================================
+        // d - 循环互换+颜色固定
+        // =============================================
+        function renderSwapLoop(box) {
+            box.innerHTML = `
+                <h3>考勤确认</h3>
+                <div class="subtitle">请选择操作</div>
+                <div class="modal-content">请确认您的考勤状态：</div>
+                <div class="btn-row" id="swapRowD">
+                    <button class="btn" id="btnLeftD" data-type="offwork" style="background:#bdbdbd;color:#666;">🏠 打卡下班</button>
+                    <button class="btn" id="btnRightD" data-type="overtime" style="background:#4CAF50;color:white;">💼 自愿加班</button>
+                </div>
+            `;
+            const row = document.getElementById('swapRowD');
+            function bindClicks() {
+                const btns = row.children;
+                for (let btn of btns) {
+                    btn.onclick = function(e) {
+                        e.stopPropagation();
+                        if (btn.dataset.type === 'offwork') handleSuccess();
+                        else handleFail('点到了加班按钮');
+                    };
+                }
+            }
+            bindClicks();
+            const swapInterval = setInterval(() => {
+                if (!modalOpen || !row || row.children.length < 2) { clearInterval(swapInterval); return; }
+                row.insertBefore(row.children[1], row.children[0]);
+                bindClicks();
+            }, 500);
+            levelTimers.push({ type: 'interval', id: swapInterval });
+        }
+
+        // =============================================
+        // e - 缩小消失
+        // =============================================
+        function renderShrinkBtn(box) {
+            box.innerHTML = `
+                <h3>考勤确认</h3>
+                <div class="subtitle">请选择操作</div>
+                <div class="modal-content"></div>
+                <div class="btn-row" style="align-items:center;gap:12px;">
+                    <button class="btn off-work" id="btnOffWork" style="font-size:15px;padding:12px 24px;min-width:100px;">🏠 打卡下班</button>
+                    <button class="btn overtime-btn" id="btnOvertime">💼 自愿加班</button>
+                </div>
+            `;
+            document.getElementById('btnOvertime').onclick = () => handleFail('点了加班');
+            const offBtn = document.getElementById('btnOffWork');
+            offBtn.onclick = handleSuccess;
+            let scale = 1;
+            const shrinkInterval = setInterval(() => {
+                if (!modalOpen) { clearInterval(shrinkInterval); return; }
+                scale -= 0.025;
+                if (scale <= 0) { offBtn.style.display = 'none'; clearInterval(shrinkInterval); return; }
+                offBtn.style.transform = `scale(${scale})`;
+                offBtn.style.fontSize = (15 * scale) + 'px';
+                offBtn.style.padding = (12 * scale) + 'px ' + (24 * scale) + 'px';
+                offBtn.style.minWidth = (100 * scale) + 'px';
+                if (scale <= 0.2) offBtn.style.opacity = scale / 0.2;
+            }, 50);
+            levelTimers.push({ type: 'interval', id: shrinkInterval });
+        }
+
+        // =============================================
+        // f - 滑动到底
+        // =============================================
+        function renderReadConfirm(box) {
+            box.innerHTML = `
+                <h3>考勤协议确认</h3>
+                <div class="subtitle">请阅读完整协议后确认</div>
+                <div class="modal-content" style="text-align:left;font-size:11px;max-height:180px;overflow-y:auto;background:#fafafa;padding:10px;border-radius:8px;" id="agreementScroll">
+                    <p><b>考勤管理制度</b></p>
+                    <p>第一条：本公司实行弹性工作制。</p>
+                    <p>第二条：员工需在每日离开前完成打卡。</p>
+                    <p>第三条：加班需提前在OA系统报备审批。</p>
+                    <p>第四条：未经审批的加班不计入考勤。</p>
+                    <p>第五条：考勤数据将作为绩效依据。</p>
+                    <p>第六条：连续3天未打卡触发HR预警。</p>
+                    <p>第七条：调休需7个工作日内申请。</p>
+                    <p>第八条：远程办公需提前登记。</p>
+                    <p>第九条：节假日加班按三倍工资计算。</p>
+                    <p>第十条：本制度自发布之日起执行，原有考勤规定同时废止。</p>
+                    <p>第十一条：员工请假需提前一天在系统提交申请，经审批后方可休假。</p>
+                    <p>第十二条：迟到30分钟以上视为旷工半天，迟到1小时以上视为旷工一天。</p>
+                    <p>第十三条：外勤人员需在到达和离开客户现场时分别打卡。</p>
+                    <p>第十四条：考勤数据每月5日前由部门负责人签字确认后提交HR。</p>
+                    <p>第十五条：加班餐补需凭发票在3个工作日内报销，逾期不予受理。</p>
+                    <p>第十六条：调休有效期至当年12月31日，未使用调休自动清零。</p>
+                    <p>第十七条：员工对考勤记录有异议的，需在3个工作日内提出书面申诉。</p>
+                    <p>第十八条：本制度最终解释权归人力资源部所有。</p>
+                    <p style="font-size:9px;color:#ccc;">—— 协议结束 ——</p>
+                    <div id="hiddenRealBtn" style="text-align:center;padding:10px 0;display:none;">
+                        <button class="btn off-work" id="btnRealOff">🏠 打卡下班</button>
+                    </div>
+                </div>
+                <div class="btn-row" style="margin-top:10px;">
+                    <button class="btn overtime-btn" id="btnOvertime">💼 自愿加班</button>
+                    <button class="btn off-work" id="btnFakeOff">🏠 打卡下班</button>
+                </div>
+            `;
+            document.getElementById('btnOvertime').onclick = () => handleFail('点了加班');
+            document.getElementById('btnFakeOff').onclick = () => {
+                const fb = document.getElementById('btnFakeOff');
+                fb.textContent = '协议未完整阅读';
+                fb.style.background = '#e74c3c';
+                fb.style.color = 'white';
+                fb.disabled = true;
+                setTimeout(() => handleFail('协议未完整阅读'), 800);
+            };
+            const scrollArea = document.getElementById('agreementScroll');
+            const hiddenBtnContainer = document.getElementById('hiddenRealBtn');
+            let revealed = false;
+            scrollArea.addEventListener('scroll', function() {
+                if (revealed) return;
+                if (scrollArea.scrollTop + scrollArea.clientHeight >= scrollArea.scrollHeight - 10) {
+                    revealed = true;
+                    hiddenBtnContainer.style.display = 'block';
+                    document.getElementById('btnRealOff').onclick = handleSuccess;
+                }
+            });
+        }
+
+        // =============================================
+        // g - 按钮逃跑
+        // =============================================
+        function renderEscapingBtn(box) {
+            box.innerHTML = `
+                <h3>考勤确认</h3>
+                <div class="subtitle">请点击打卡下班按钮</div>
+                <div class="modal-content">请选择操作：</div>
+                <div class="btn-row" style="position:relative;height:200px;" id="escapeArea">
+                    <button class="btn off-work" id="btnOffWork" style="position:fixed;left:30px;top:200px;z-index:1002;">🏠 打卡下班</button>
+                    <button class="btn overtime-btn" id="btnOvertime" style="position:absolute;right:20px;top:50px;">💼 自愿加班</button>
+                </div>
+            `;
+            document.getElementById('btnOvertime').onclick = () => handleFail('点了加班');
+            const escapeBtn = document.getElementById('btnOffWork');
+            let currentX = 30, currentY = 200;
+            escapeBtn.addEventListener('click', function(e) { e.stopPropagation(); handleSuccess(); });
+
+            const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth < 768);
+
+            if (!isMobile) {
+                function trackAndEscape(e) {
+                    if (!modalOpen) return;
+                    const cx = e.clientX, cy = e.clientY;
+                    if (!cx || !cy) return;
+                    const btnRect = escapeBtn.getBoundingClientRect();
+                    const bx = btnRect.left + btnRect.width / 2, by = btnRect.top + btnRect.height / 2;
+                    const dist = Math.sqrt((cx - bx) ** 2 + (cy - by) ** 2);
+                    if (dist < 80) {
+                        const dx = bx - cx, dy = by - cy, len = Math.sqrt(dx * dx + dy * dy) || 1;
+                        currentX += (dx / len) * (60 + Math.random() * 60);
+                        currentY += (dy / len) * (60 + Math.random() * 60);
+                        const vpW = window.innerWidth, vpH = window.innerHeight, bw = btnRect.width, bh = btnRect.height;
+                        if (currentX < 0) { currentX = 0; currentY += (Math.random() - 0.5) * 150; }
+                        if (currentX > vpW - bw) { currentX = vpW - bw; currentY += (Math.random() - 0.5) * 150; }
+                        if (currentY < 0) { currentY = 0; currentX += (Math.random() - 0.5) * 150; }
+                        if (currentY > vpH - bh) { currentY = vpH - bh; currentX += (Math.random() - 0.5) * 150; }
+                        currentX = Math.max(0, Math.min(currentX, vpW - bw));
+                        currentY = Math.max(0, Math.min(currentY, vpH - bh));
+                        escapeBtn.style.left = currentX + 'px';
+                        escapeBtn.style.top = currentY + 'px';
+                    }
+                }
+                document.addEventListener('mousemove', trackAndEscape);
+                levelTimers.push({ type: 'eventListener', el: document, fn: trackAndEscape });
+            } else {
+                let autoAngle = Math.random() * Math.PI * 2;
+                const autoMoveInterval = setInterval(() => {
+                    if (!modalOpen) { clearInterval(autoMoveInterval); return; }
+                    autoAngle += (Math.random() - 0.5) * 1.2;
+                    const speed = 15 + Math.random() * 20;
+                    currentX += Math.cos(autoAngle) * speed;
+                    currentY += Math.sin(autoAngle) * speed;
+                    const btnRect = escapeBtn.getBoundingClientRect();
+                    const vpW = window.innerWidth, vpH = window.innerHeight, bw = btnRect.width, bh = btnRect.height;
+                    if (currentX < 0) { currentX = 0; autoAngle = Math.PI - autoAngle; currentY += (Math.random() - 0.5) * 100; }
+                    if (currentX > vpW - bw) { currentX = vpW - bw; autoAngle = Math.PI - autoAngle; currentY += (Math.random() - 0.5) * 100; }
+                    if (currentY < 0) { currentY = 0; autoAngle = -autoAngle; currentX += (Math.random() - 0.5) * 100; }
+                    if (currentY > vpH - bh) { currentY = vpH - bh; autoAngle = -autoAngle; currentX += (Math.random() - 0.5) * 100; }
+                    currentX = Math.max(0, Math.min(currentX, vpW - bw));
+                    currentY = Math.max(0, Math.min(currentY, vpH - bh));
+                    escapeBtn.style.left = currentX + 'px';
+                    escapeBtn.style.top = currentY + 'px';
+                }, 10);
+                function touchChase(e) {
+                    if (!modalOpen) return;
+                    let cx, cy;
+                    if (e.touches && e.touches.length > 0) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; } else return;
+                    const btnRect = escapeBtn.getBoundingClientRect();
+                    const bx = btnRect.left + btnRect.width / 2, by = btnRect.top + btnRect.height / 2;
+                    const dist = Math.sqrt((cx - bx) ** 2 + (cy - by) ** 2);
+                    if (dist < 100) { const dx = bx - cx, dy = by - cy, len = Math.sqrt(dx * dx + dy * dy) || 1;
+                        currentX += (dx / len) * 200;
+                        currentY += (dy / len) * 200; }
+                }
+                document.addEventListener('touchstart', touchChase, { passive: false });
+                document.addEventListener('touchmove', touchChase, { passive: false });
+                levelTimers.push({ type: 'interval', id: autoMoveInterval });
+                levelTimers.push({ type: 'eventListener', el: document, fn: touchChase });
+            }
+        }
+
+        // =============================================
+        // h - 连点50次+30次互换+衰减
+        // =============================================
+        function renderClickCount(box) {
+            box.innerHTML = `
+                <h3>考勤确认</h3>
+                <div class="subtitle">请连续确认考勤状态</div>
+                <div class="modal-content">
+                    <div style="margin-bottom:8px;">确认进度：<span id="clickCount" style="font-weight:bold;">0</span>/50</div>
+                    <div style="background:#eee;border-radius:6px;height:10px;overflow:hidden;margin-bottom:12px;">
+                        <div id="clickProgress" style="background:#4CAF50;height:100%;width:0%;transition:width 0.1s;"></div>
+                    </div>
+                </div>
+                <div class="btn-row" id="swapRowH">
+                    <button class="btn off-work" id="btnOffWork">🏠 打卡下班</button>
+                    <button class="btn overtime-btn" id="btnOvertime">💼 自愿加班</button>
+                </div>
+            `;
+            let clicks = 0, swapped = false;
+            const progressBar = document.getElementById('clickProgress'), countDisplay = document.getElementById('clickCount'), row = document.getElementById('swapRowH');
+            function updateDisplay() {
+                countDisplay.textContent = clicks;
+                progressBar.style.width = Math.min((clicks / 50) * 100, 100) + '%';
+                if (clicks >= 50) { progressBar.style.background = '#4CAF50'; countDisplay.style.color = '#4CAF50'; }
+            }
+            function bindButtons() {
+                const btns = row.children;
+                if (btns.length < 2) return;
+                if (!swapped) {
+                    btns[0].onclick = () => { clicks++;
+                        updateDisplay(); if (clicks >= 30 && !swapped) { swapped = true;
+                            row.insertBefore(row.children[1], row.children[0]);
+                            bindButtons(); } if (clicks >= 50) handleSuccess(); };
+                    btns[1].onclick = () => handleFail('点了加班');
+                } else {
+                    btns[0].onclick = () => handleFail('确认错误');
+                    btns[1].onclick = () => { clicks++;
+                        updateDisplay(); if (clicks >= 50) handleSuccess(); };
+                }
+            }
+            bindButtons();
+            const decayInterval = setInterval(() => {
+                if (!modalOpen) { clearInterval(decayInterval); return; }
+                if (clicks > 0 && clicks < 50) { clicks = Math.max(0, clicks - 1); updateDisplay(); }
+            }, 1000);
+            levelTimers.push({ type: 'interval', id: decayInterval });
+        }
+
+        // =============================================
+        // i - 验证码陷阱
+        // =============================================
+        function renderCaptcha(box) {
+            box.innerHTML = `
+                <h3>安全验证</h3>
+                <div class="subtitle">请输入验证码以确认打卡</div>
+                <div class="modal-content">
+                    <div style="background:#f0f0f0;padding:10px;border-radius:6px;font-size:22px;letter-spacing:8px;text-align:center;font-weight:bold;color:#333;" id="captchaDisplay"></div>
+                    <input type="text" class="captcha-input" id="captchaInput" placeholder="请输入验证码" value="996" autocomplete="off" style="margin-top:10px;">
+                    <div class="btn-row" style="position:relative;height:50px;overflow:hidden;margin-top:10px;" id="captchaBtnRow">
+                        <button class="btn off-work" id="btnSubmit" style="position:relative;left:0;transition:left 0.5s linear;">提交</button>
+                        <button class="btn overtime-btn" id="btnOvertimeR">💼 自愿加班</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('btnOvertimeR').onclick = () => handleFail('点了加班');
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
+            document.getElementById('captchaDisplay').textContent = code;
+            const correctCode = code;
+            const submitBtn = document.getElementById('btnSubmit');
+            const input = document.getElementById('captchaInput');
+            const btnRow = document.getElementById('captchaBtnRow');
+            let moveTimer = null, moveInterval = null;
+            submitBtn.onclick = function(e) {
+                e.stopPropagation();
+                if (input.value.trim().toUpperCase() === correctCode) {
+                    if (moveInterval) clearInterval(moveInterval);
+                    handleSuccess();
+                } else { handleFail('验证码错误'); }
+            };
+            moveTimer = setTimeout(() => {
+                if (!modalOpen) return;
+                let btnLeft = 0;
+                moveInterval = setInterval(() => {
+                    if (!modalOpen) { clearInterval(moveInterval); return; }
+                    btnLeft += 2;
+                    submitBtn.style.left = btnLeft + 'px';
+                    if (btnLeft > btnRow.clientWidth) { clearInterval(moveInterval);
+                        handleFail('验证超时'); }
+                }, 50);
+            }, 800);
+            levelTimers.push({ type: 'timeout', id: moveTimer });
+            levelTimers.push({ type: 'interval', id: moveInterval });
+        }
+
+        // =============================================
+        // j - 长按5秒+按钮逃跑
+        // =============================================
+        function renderLongPress(box) {
+            box.innerHTML = `
+                <h3>考勤确认</h3>
+                <div class="subtitle">请长按确认按钮</div>
+                <div class="modal-content" id="longPressStatus">请按住按钮...</div>
+                <div class="btn-row" style="position:relative;height:150px;overflow:hidden;" id="longPressArea">
+                    <button class="btn off-work" id="btnOffWork" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);transition:none;">🏠 打卡下班</button>
+                    <button class="btn overtime-btn" id="btnOvertime" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);">💼 自愿加班</button>
+                </div>
+            `;
+            document.getElementById('btnOvertime').onclick = () => handleFail('点了加班');
+            const offBtn = document.getElementById('btnOffWork');
+            const status = document.getElementById('longPressStatus');
+            const area = document.getElementById('longPressArea');
+            let pressStartTime = 0, pressTimer = null, successTriggered = false, moveInterval = null;
+            let btnX = area.clientWidth / 2, btnY = area.clientHeight / 2;
+            function updateBtnPosition() { offBtn.style.left = btnX + 'px';
+                offBtn.style.top = btnY + 'px';
+                offBtn.style.transform = 'translate(-50%, -50%)'; }
+
+            function startPress(e) {
+                if (!modalOpen || successTriggered) return;
+                e.preventDefault();
+                pressStartTime = Date.now();
+                successTriggered = false;
+                status.textContent = '请按住按钮...';
+                status.style.color = '#666';
+                btnX = area.clientWidth / 2;
+                btnY = area.clientHeight / 2;
+                updateBtnPosition();
+                pressTimer = setInterval(() => {
+                    if (!modalOpen) { clearInterval(pressTimer);
+                        clearInterval(moveInterval); return; }
+                    const elapsed = (Date.now() - pressStartTime) / 1000;
+                    status.textContent = `请继续按住...`;
+                    if (elapsed >= 3) status.style.color = '#ff9800';
+                    if (elapsed >= 5) { clearInterval(pressTimer);
+                        clearInterval(moveInterval);
+                        successTriggered = true;
+                        handleSuccess(); }
+                }, 100);
+                let moveAngle = Math.random() * Math.PI * 2, moveSpeed = 0;
+                moveInterval = setInterval(() => {
+                    if (!modalOpen || successTriggered) { clearInterval(moveInterval); return; }
+                    moveSpeed = Math.min(moveSpeed + 0.15, 2.5);
+                    moveAngle += (Math.random() - 0.5) * 0.6;
+                    btnX += Math.cos(moveAngle) * moveSpeed;
+                    btnY += Math.sin(moveAngle) * moveSpeed;
+                    const maxX = area.clientWidth - 10, maxY = area.clientHeight - 10;
+                    if (btnX < 10) { btnX = 10;
+                        moveAngle = Math.PI - moveAngle; }
+                    if (btnX > maxX) { btnX = maxX;
+                        moveAngle = Math.PI - moveAngle; }
+                    if (btnY < 10) { btnY = 10;
+                        moveAngle = -moveAngle; }
+                    if (btnY > maxY) { btnY = maxY;
+                        moveAngle = -moveAngle; }
+                    updateBtnPosition();
+                }, 50);
+            }
+
+            function endPress() {
+                if (pressTimer) { clearInterval(pressTimer);
+                    pressTimer = null; }
+                if (moveInterval) { clearInterval(moveInterval);
+                    moveInterval = null; }
+                if (!successTriggered && modalOpen) { handleFail('确认中断'); }
+            }
+            offBtn.addEventListener('mousedown', startPress);
+            offBtn.addEventListener('touchstart', startPress, { passive: false });
+            offBtn.addEventListener('mouseup', endPress);
+            offBtn.addEventListener('touchend', endPress);
+            offBtn.addEventListener('mouseleave', endPress);
+            offBtn.addEventListener('touchcancel', endPress);
+            levelTimers.push({ type: 'interval', id: pressTimer });
+            levelTimers.push({ type: 'interval', id: moveInterval });
+        }
+        
+        // =============================================
+        // k - 物理掉落
+        // =============================================
+        function renderSplitBtn(box) {
+            const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth < 768);
+    
+            // 手机端缩小弹窗
+            if (isMobile) {
+                const modalBox = document.getElementById('modalBox');
+                modalBox.style.maxWidth = '250px';
+                modalBox.style.maxHeight = '60vh';
+                modalBox.style.overflowY = 'visible';
+            } else {
+                const modalBox = document.getElementById('modalBox');
+                modalBox.style.maxWidth = '800px';
+                modalBox.style.maxHeight = 'none';
+                modalBox.style.overflowY = 'visible';
+            }
+
+                    box.innerHTML = `
+                <h3>考勤确认</h3>
+                <div class="subtitle">请选择操作</div>
+                <div class="modal-content" id="splitContent">
+                    <div class="btn-row" id="splitBtnRow">
+                        <button class="btn off-work" id="btnOffWorkK">🏠 打卡下班</button>
+                        <button class="btn overtime-btn" id="btnOvertimeK">💼 自愿加班</button>
+                    </div>
+                    <div id="finalOffWorkArea" style="text-align:center;margin-top:12px;display:none;">
+                        <button class="btn off-work" id="btnFinalOffWork" style="font-size:16px;padding:14px 30px;animation: pulseP 0.6s infinite;">🏠 打卡下班</button>
+                    </div>
+                </div>
+                <div style="text-align:center;margin-top:6px;font-size:12px;color:#888;">剩余：<span id="checkedCountK" style="font-weight:bold;color:#e74c3c;">20</span>/20</div>
+            `;
+            document.getElementById('btnOvertimeK').onclick = () => handleFail('点了加班');
+            let splitTriggered = false, checkedTotal = 0, animFrameId = null, allDone = false;
+            const btns = [];
+            const SIZE = isMobile ? 22 : 30;
+            const HALF = SIZE / 2;
+            const TOTAL = isMobile ? 16 : 20;
+
+            document.getElementById('btnOffWorkK').onclick = function() {
+                if (splitTriggered) return;
+                splitTriggered = true;
+                document.getElementById('splitBtnRow').style.display = 'none';
+                document.getElementById('checkedCountK').textContent = TOTAL;
+                const vpW = window.innerWidth, vpH = window.innerHeight;
+                const modalEl = document.getElementById('modalBox');
+                let modal = modalEl.getBoundingClientRect();
+                const modalInterval = setInterval(() => { if (modalEl) modal = modalEl.getBoundingClientRect(); }, 200);
+                levelTimers.push({ type: 'interval', id: modalInterval });
+
+                for (let i = 0; i < TOTAL; i++) {
+                    const el = document.createElement('button');
+                    el.textContent = '✗';
+                    el.style.cssText = `position:fixed;width:${SIZE}px;height:${SIZE}px;padding:0;font-size:13px;font-weight:bold;border-radius:5px;border:2px solid #e74c3c;background:#fff;color:#e74c3c;cursor:pointer;z-index:9999;line-height:${SIZE-4}px;text-align:center;font-family:monospace;box-shadow:0 2px 6px rgba(0,0,0,0.12);user-select:none;-webkit-user-select:none;`;
+                    const data = { el, x: 10 + Math.random() * (vpW - SIZE - 20), y: -(50 + Math.random() * 600 + i * 20), vx: (Math.random() - 0.5) * 150, vy: 5 + Math.random() * 30, checked: false };
+                    el.style.left = data.x + 'px';
+                    el.style.top = data.y + 'px';
+                    el.addEventListener('click', function(e) { e.stopPropagation(); if (data.checked || allDone) return;
+                        data.checked = true;
+                        el.textContent = '✓';
+                        el.style.background = '#4CAF50';
+                        el.style.color = '#fff';
+                        el.style.borderColor = '#4CAF50';
+                        checkedTotal++; const rem = TOTAL - checkedTotal; const countEl = document.getElementById('checkedCountK');
+                        countEl.textContent = rem;
+                        countEl.style.color = rem <= 3 ? '#4CAF50' : rem <= 10 ? '#ff9800' : '#e74c3c'; if (checkedTotal >= TOTAL && !allDone) { allDone = true;
+                            setTimeout(() => { btns.forEach(b => b.el.remove());
+                                btns.length = 0;
+                                cancelAnimationFrame(animFrameId);
+                                document.getElementById('finalOffWorkArea').style.display = 'block';
+                                document.getElementById('btnFinalOffWork').onclick = handleSuccess;
+                                document.getElementById('checkedCountK').textContent = '0';
+                                document.getElementById('checkedCountK').style.color = '#4CAF50'; }, 500); } });
+                    document.body.appendChild(el);
+                    btns.push(data);
+                }
+
+                const GRAVITY = 350;
+                let last = performance.now();
+
+                function loop(ts) {
+                    if (allDone) return;
+                    const dt = Math.min(1 / 30, (ts - last) / 1000);
+                    last = ts;
+                    const m = modal;
+                    for (const b of btns) { b.vy += GRAVITY * dt;
+                        b.x += b.vx * dt;
+                        b.y += b.vy * dt; }
+                    for (const b of btns) {
+                        if (b.x + SIZE > m.left && b.x < m.right && b.y + SIZE > m.top && b.y < m.bottom) {
+                            const ol = b.x + SIZE - m.left, or = m.right - b.x, ot = b.y + SIZE - m.top, ob = m.bottom - b.y;
+                            const min = Math.min(ol, or, ot, ob);
+                            if (min === ot) { b.y = m.top - SIZE;
+                                b.vy = -Math.abs(b.vy) * 0.5; } else if (min === ob) { b.y = m.bottom;
+                                b.vy = Math.abs(b.vy) * 0.5; } else if (min === ol) { b.x = m.left - SIZE;
+                                b.vx = -Math.abs(b.vx) * 0.5; } else { b.x = m.right;
+                                b.vx = Math.abs(b.vx) * 0.5; }
+                        }
+                    }
+                    for (let i = 0; i < btns.length; i++) {
+                        for (let j = i + 1; j < btns.length; j++) {
+                            const a = btns[i], b2 = btns[j];
+                            const dx = (a.x + HALF) - (b2.x + HALF), dy = (a.y + HALF) - (b2.y + HALF);
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist < SIZE && dist > 0.001) {
+                                const nx = dx / dist, ny = dy / dist;
+                                const overlap = Math.max(0, SIZE - dist + 0.5);
+                                a.x += nx * overlap * 0.5;
+                                a.y += ny * overlap * 0.5;
+                                b2.x -= nx * overlap * 0.5;
+                                b2.y -= ny * overlap * 0.5;
+                                const dvx = a.vx - b2.vx, dvy = a.vy - b2.vy, vn = dvx * nx + dvy * ny;
+                                if (vn < 0) { const e = 0.8, J = -(1 + e) * vn / 2;
+                                    a.vx += J * nx;
+                                    a.vy += J * ny;
+                                    b2.vx -= J * nx;
+                                    b2.vy -= J * ny; }
+                            }
+                        }
+                    }
+                    for (const b of btns) {
+                        if (b.x < 0) { b.x = 0;
+                            b.vx = Math.abs(b.vx) * 0.5; }
+                        if (b.x > vpW - SIZE) { b.x = vpW - SIZE;
+                            b.vx = -Math.abs(b.vx) * 0.5; }
+                        if (b.y > vpH + 50) { b.y = -SIZE - Math.random() * 400;
+                            b.x = 10 + Math.random() * (vpW - SIZE - 20);
+                            b.vy = 5 + Math.random() * 20;
+                            b.vx = (Math.random() - 0.5) * 120; }
+                        if (b.y < -700) { b.y = -SIZE - Math.random() * 200;
+                            b.vy = Math.abs(b.vy) * 0.5; }
+                        b.el.style.left = b.x + 'px';
+                        b.el.style.top = b.y + 'px';
+                    }
+                    animFrameId = requestAnimationFrame(loop);
+                }
+                animFrameId = requestAnimationFrame(loop);
+            };
+            levelTimers.push({ type: 'cleanup', fn: () => { if (animFrameId) cancelAnimationFrame(animFrameId);
+                    btns.forEach(b => b.el.remove());
+                    btns.length = 0; } });
+        }
+
+        // =============================================
+        // l - 探照灯寻按钮（修复版）
+        // =============================================
+        function renderSpotlight(box) {
+            // 隐藏弹窗但保持modalOpen状态
+            document.getElementById('modalOverlay').classList.add('hidden');
+            document.getElementById('modalBox').innerHTML = '';
+            const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth < 768);
+            const holeSize = isMobile ? 50 : 80;
+            const totalBtns = isMobile ? 15 : 21;
+            const btnW = isMobile ? 90 : 130;
+            const btnH = isMobile ? 40 : 50;
+            const fontSize = isMobile ? 12 : 15;
+            const gap = isMobile ? 6 : 10;
+            const vpW = window.innerWidth, vpH = window.innerHeight;
+            
+            const container = document.createElement('div');
+            container.id = 'spotlightContainer';
+            container.style.cssText = `position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:10000;background:#f0f0f0;overflow:hidden;${isMobile ? '' : 'cursor:none;'}`;
+            
+            const bottomLayer = document.createElement('div');
+            bottomLayer.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;';
+            
+            const positions = [];
+            for (let i = 0; i < totalBtns; i++) {
+                let placed = false;
+                for (let attempt = 0; attempt < 800; attempt++) {
+                    const x = Math.random() * (vpW - btnW), y = Math.random() * (vpH - btnH);
+                    let overlap = false;
+                    for (const pos of positions) {
+                        if (Math.abs(pos.x - x) < btnW + gap && Math.abs(pos.y - y) < btnH + gap) { overlap = true; break; }
+                    }
+                    if (!overlap) { positions.push({ x, y }); placed = true; break; }
+                }
+                if (!placed) positions.push({ x: Math.random() * (vpW - btnW), y: Math.random() * (vpH - btnH) });
+            }
+            
+            const offWorkIndex = Math.floor(Math.random() * totalBtns);
+            let found = false;
+            
+            for (let i = 0; i < totalBtns; i++) {
+                const btn = document.createElement('button');
+                const isOffWork = (i === offWorkIndex);
+                btn.textContent = isOffWork ? '🏠 打卡下班' : '💼 自愿加班';
+                btn.style.cssText = `position:absolute;left:${positions[i].x}px;top:${positions[i].y}px;width:${btnW}px;height:${btnH}px;border-radius:10px;border:none;font-size:${fontSize}px;font-weight:600;cursor:pointer;background:#4CAF50;color:white;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:3;`;
+                
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    if (found) return;
+                    found = true;
+                    cleanup();
+                    if (isOffWork) handleSuccess();
+                    else handleFail('选择错误');
+                });
+                btn.addEventListener('touchend', function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    if (found) return;
+                    found = true;
+                    cleanup();
+                    if (isOffWork) handleSuccess();
+                    else handleFail('选择错误');
+                });
+                bottomLayer.appendChild(btn);
+            }
+            
+            // 覆盖层（挖洞遮罩）
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:#1a1a1a;pointer-events:none;z-index:2;';
+            
+            function updateMask(cx, cy) {
+                overlay.style.webkitMaskImage = `radial-gradient(circle ${holeSize}px at ${cx}px ${cy}px, transparent ${holeSize}px, black ${holeSize}px)`;
+                overlay.style.maskImage = `radial-gradient(circle ${holeSize}px at ${cx}px ${cy}px, transparent ${holeSize}px, black ${holeSize}px)`;
+                overlay.style.webkitMaskSize = '100% 100%';
+                overlay.style.maskSize = '100% 100%';
+            }
+            
+            let holeX = vpW / 2, holeY = vpH / 2;
+            updateMask(holeX, holeY);
+            
+            function onMouseMove(e) { holeX = e.clientX; holeY = e.clientY; updateMask(holeX, holeY); }
+            function onTouchMove(e) {
+                if (e.touches.length > 0) { holeX = e.touches[0].clientX; holeY = e.touches[0].clientY; updateMask(holeX, holeY); }
+            }
+            
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('touchmove', onTouchMove, { passive: true });
+            
+            const hint = document.createElement('div');
+            hint.style.cssText = 'position:absolute;bottom:30px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.4);font-size:13px;z-index:4;pointer-events:none;';
+            hint.textContent = isMobile ? '滑动查看' : '移动鼠标查看';
+            
+            container.appendChild(bottomLayer);
+            container.appendChild(overlay);
+            container.appendChild(hint);
+            document.body.appendChild(container);
+            
+            function cleanup() {
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('touchmove', onTouchMove);
+                if (container.parentNode) container.remove();
+                document.getElementById('modalOverlay').classList.remove('hidden');
+            }
+                    
+            levelTimers.push({ type: 'cleanup', fn: cleanup });
+        }
+
+        // ---------- 高级m：波次射击+BOSS ----------
+        function renderShooter(box) {
+            // 确保弹窗可见
+            document.getElementById('modalOverlay').classList.remove('hidden');
+            const modalBox = document.getElementById('modalBox');
+            modalBox.style.cssText = '';
+            
+            const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth < 768);
+            
+            if (isMobile) {
+                modalBox.style.maxWidth = '95vw';
+                modalBox.style.maxHeight = 'none';
+                modalBox.style.overflowY = 'visible';
+            } else {
+                modalBox.style.maxWidth = '440px';
+                modalBox.style.maxHeight = 'none';
+                modalBox.style.overflowY = 'visible';
+            }
+            box.innerHTML = `
+                <h3>🎯 消灭所有加班怪</h3>
+                <div class="subtitle">鼠标/手指左右移动炮台 | 自动发射</div>
+                        <div class="modal-content" style="padding:0;max-height:none;overflow:visible;">
+                    <canvas id="shooterCanvas" style="display:block;margin:0 auto;border-radius:8px;background:#1a1a2e;touch-action:none;"></canvas>
+                </div>
+                <div style="text-align:center;margin-top:4px;font-size:11px;color:#888;">
+                    第 <span id="waveNum" style="font-weight:bold;color:#f39c12;">1</span> 波 &nbsp;|&nbsp;
+                    剩余：<span id="enemyCount" style="font-weight:bold;color:#e74c3c;">0</span>
+                </div>
+            `;
+
+            const canvas = document.getElementById('shooterCanvas');
+            const ctx = canvas.getContext('2d');
+            const countDisplay = document.getElementById('enemyCount');
+            const waveDisplay = document.getElementById('waveNum');
+
+            const W = isMobile ? Math.min(280, window.innerWidth - 80) : 350;
+            const H = isMobile ? 380 : 420;
+            canvas.width = W;
+            canvas.height = H;
+
+            const PLAYER_R = 15;
+            const BULLET_R = 3;
+            const BULLET_SPEED = 6;
+            const FIRE_RATE = 6;
+            const ENEMY_W = 34;
+            const ENEMY_H = 26;
+
+            let playerX = W / 2;
+            let playerY = H - 40;
+            let bullets = [];
+            let enemies = [];
+            let gameOver = false;
+            let frameCount = 0;
+            let animId = null;
+
+            // 波次系统
+            let currentWave = 0;
+            let waveEnemiesRemaining = 0;
+            let waveEnemiesSpawned = 0;
+            let spawnTimer = 0;
+            let spawnInterval = 40;
+            let waveActive = false;
+            let bossAlive = false;
+
+            // 波次定义
+            const waves = [
+                { name: '第1波', count: 8, hp: 3, speed: 0.8, spawnInterval: 45, isBoss: false },
+                { name: '第2波', count: 10, hp: 4, speed: 1.0, spawnInterval: 40, isBoss: false },
+                { name: '第3波', count: 12, hp: 5, speed: 1.2, spawnInterval: 35, isBoss: false },
+                { name: '第4波', count: 14, hp: 6, speed: 1.4, spawnInterval: 30, isBoss: false },
+                { name: '第5波', count: 16, hp: 7, speed: 1.6, spawnInterval: 25, isBoss: false },
+                { name: 'BOSS波', count: 1, hp: 300, speed: 0.19, spawnInterval: 0, isBoss: true },
+            ];
+
+            let boss = null;
+
+            function spawnEnemy(hp, speed, isBoss) {
+                return {
+                    x: Math.random() * (W - ENEMY_W),
+                    y: -ENEMY_H - Math.random() * 60,
+                    speed: speed + Math.random() * 0.3,
+                    hp: hp,
+                    maxHp: hp,
+                    isBoss: isBoss,
+                    bossW: isBoss ? 80 : ENEMY_W,
+                    bossH: isBoss ? 60 : ENEMY_H,
+                    bossPhase: 0,
+                    bossDir: 1,
+                };
+            }
+
+            function startWave(waveIndex) {
+                if (waveIndex >= waves.length) {
+                    // 全部通关
+                    gameOver = true;
+                    cancelAnimationFrame(animId);
+                    setTimeout(() => handleSuccess(), 500);
+                    return;
+                }
+                currentWave = waveIndex;
+                const wave = waves[waveIndex];
+                waveDisplay.textContent = wave.name;
+                waveDisplay.style.color = wave.isBoss ? '#e74c3c' : '#f39c12';
+                waveEnemiesRemaining = wave.count;
+                waveEnemiesSpawned = 0;
+                spawnInterval = wave.spawnInterval;
+                spawnTimer = 0;
+                waveActive = true;
+                bossAlive = wave.isBoss;
+                countDisplay.textContent = wave.count;
+                countDisplay.style.color = '#e74c3c';
+            }
+
+            startWave(0);
+
+            // 炮台控制
+            function updatePlayer(e) {
+                const rect = canvas.getBoundingClientRect();
+                const cx = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+                playerX = Math.max(PLAYER_R, Math.min(W - PLAYER_R, cx));
+            }
+
+            canvas.addEventListener('mousemove', updatePlayer);
+            canvas.addEventListener('touchmove', (e) => { e.preventDefault();
+                updatePlayer(e); }, { passive: false });
+            canvas.addEventListener('touchstart', (e) => { e.preventDefault();
+                updatePlayer(e); }, { passive: false });
+
+            function gameLoop() {
+                if (gameOver) return;
+                frameCount++;
+
+                ctx.clearRect(0, 0, W, H);
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(0, 0, W, H);
+
+                // 网格
+                ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+                for (let gx = 0; gx < W; gx += 30) { ctx.beginPath();
+                    ctx.moveTo(gx, 0);
+                    ctx.lineTo(gx, H);
+                    ctx.stroke(); }
+                for (let gy = 0; gy < H; gy += 30) { ctx.beginPath();
+                    ctx.moveTo(0, gy);
+                    ctx.lineTo(W, gy);
+                    ctx.stroke(); }
+
+                // 生成敌人
+                if (waveActive) {
+                    spawnTimer++;
+                    if (spawnTimer >= spawnInterval && waveEnemiesSpawned < waves[currentWave].count) {
+                        spawnTimer = 0;
+                        const wave = waves[currentWave];
+                        enemies.push(spawnEnemy(wave.hp, wave.speed, wave.isBoss));
+                        waveEnemiesSpawned++;
+                    }
+                }
+
+                // 发射子弹（第5波三列，其他两列）
+                if (frameCount % FIRE_RATE === 0 && (waveActive || enemies.length > 0)) {
+                    if (currentWave === 4 || currentWave === 5) {
+                        // 第5波三列
+                        bullets.push(
+                            { x: playerX - 10, y: playerY, vx: 0, vy: -BULLET_SPEED },
+                            { x: playerX, y: playerY, vx: 0, vy: -BULLET_SPEED },
+                            { x: playerX + 10, y: playerY, vx: 0, vy: -BULLET_SPEED }
+                        );
+                    } else {
+                        bullets.push(
+                            { x: playerX - 5, y: playerY, vx: 0, vy: -BULLET_SPEED },
+                            { x: playerX + 5, y: playerY, vx: 0, vy: -BULLET_SPEED }
+                        );
+                    }
+                }
+
+                // 更新子弹
+                for (let i = bullets.length - 1; i >= 0; i--) {
+                    bullets[i].y += bullets[i].vy;
+                    if (bullets[i].y < -20 || bullets[i].y > H + 20) bullets.splice(i, 1);
+                }
+
+                // 更新敌人
+                for (let i = enemies.length - 1; i >= 0; i--) {
+                    const enemy = enemies[i];
+                    enemy.y += enemy.speed;
+
+                    // BOSS左右移动
+                    if (enemy.isBoss) {
+                        enemy.x += enemy.bossDir * 0.19;
+                        if (enemy.x < 0) enemy.bossDir = 1;
+                        if (enemy.x > W - enemy.bossW) enemy.bossDir = -1;
+                        enemy.bossPhase += 0.05;
+
+                        // BOSS疯狂反击
+                        if (frameCount % 90 === 0) {
+                            for (let k = -2; k <= 2; k++) {
+                                enemies.push({
+                                    x: enemy.x + enemy.bossW / 2 - ENEMY_W / 2 + k * 20,
+                                    y: enemy.y + enemy.bossH,
+                                    speed: 0.8 + Math.abs(k) * 0.3,
+                                    hp: 2,
+                                    maxHp: 2,
+                                    isBoss: false,
+                                    bossW: ENEMY_W,
+                                    bossH: ENEMY_H,
+                                    bossPhase: 0,
+                                    bossDir: 1,
+                                });
+                            }
+                        }
+                    }
+
+                    const ew = enemy.isBoss ? enemy.bossW : ENEMY_W;
+                    const eh = enemy.isBoss ? enemy.bossH : ENEMY_H;
+
+                    // 到达底部
+                    if (enemy.y > H) {
+                        gameOver = true;
+                        handleFail('加班怪入侵成功');
+                        return;
+                    }
+
+                    // 子弹碰撞
+                    for (let j = bullets.length - 1; j >= 0; j--) {
+                        const b = bullets[j];
+                        if (b.x > enemy.x && b.x < enemy.x + ew &&
+                            b.y > enemy.y && b.y < enemy.y + eh) {
+                            bullets.splice(j, 1);
+                            enemy.hp--;
+                            if (enemy.hp <= 0) {
+                                enemies.splice(i, 1);
+                                waveEnemiesRemaining--;
+                                countDisplay.textContent = waveEnemiesRemaining;
+
+                                // 检查波次是否结束
+                                if (waveEnemiesRemaining <= 0 && enemies.length === 0) {
+                                    waveActive = false;
+                                    bossAlive = false;
+                                    setTimeout(() => startWave(currentWave + 1), 800);
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                // 绘制敌人
+                for (const enemy of enemies) {
+                    const ew = enemy.isBoss ? enemy.bossW : ENEMY_W;
+                    const eh = enemy.isBoss ? enemy.bossH : ENEMY_H;
+
+                    if (enemy.isBoss) {
+                        // BOSS发光效果
+                        const glow = Math.sin(enemy.bossPhase) * 0.3 + 0.7;
+                        ctx.shadowColor = '#e74c3c';
+                        ctx.shadowBlur = 15 * glow;
+                        ctx.fillStyle = '#c0392b';
+                        ctx.fillRect(enemy.x, enemy.y, ew, eh);
+                        ctx.shadowBlur = 0;
+                        ctx.strokeStyle = '#ff6b6b';
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(enemy.x, enemy.y, ew, eh);
+                        ctx.fillStyle = '#fff';
+                        ctx.font = 'bold 14px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('加班王', enemy.x + ew / 2, enemy.y + eh / 2 + 6);
+                    } else {
+                        ctx.fillStyle = '#e74c3c';
+                        ctx.fillRect(enemy.x, enemy.y, ew, eh);
+                        ctx.strokeStyle = '#c0392b';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(enemy.x, enemy.y, ew, eh);
+                        ctx.fillStyle = '#fff';
+                        ctx.font = 'bold 10px monospace';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('加班', enemy.x + ew / 2, enemy.y + eh / 2 + 4);
+                    }
+
+                    // 血条
+                    const hpPct = enemy.hp / enemy.maxHp;
+                    const barY = enemy.y - 8;
+                    const barW = ew;
+                    ctx.fillStyle = '#333';
+                    ctx.fillRect(enemy.x, barY, barW, 5);
+                    ctx.fillStyle = hpPct > 0.5 ? '#4CAF50' : hpPct > 0.25 ? '#f39c12' : '#e74c3c';
+                    ctx.fillRect(enemy.x, barY, barW * hpPct, 5);
+                }
+
+                // 绘制子弹
+                for (const b of bullets) {
+                    ctx.fillStyle = '#f1c40f';
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, BULLET_R, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // 绘制炮台
+                ctx.fillStyle = '#4CAF50';
+                ctx.beginPath();
+                ctx.arc(playerX, playerY, PLAYER_R, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('炮', playerX, playerY + 4);
+
+                // 炮管
+                ctx.fillStyle = '#388E3C';
+                ctx.fillRect(playerX - 2, playerY - PLAYER_R - 10, 4, 12);
+
+                animId = requestAnimationFrame(gameLoop);
+            }
+
+            animId = requestAnimationFrame(gameLoop);
+
+            levelTimers.push({
+                type: 'cleanup',
+                fn: () => {
+                    if (animId) cancelAnimationFrame(animId);
+                    gameOver = true;
+                }
+            });
+        }
+
+        // =============================================
+        // n - 瞄准射击（探照灯+靶子）
+        // =============================================
+        function renderFPS(box) {
+            closeModal();
+            modalOpen = true;
+            const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth < 768);
+            const holeSize = isMobile ? 50 : 70;
+            const vpW = window.innerWidth, vpH = window.innerHeight;
+            const container = document.createElement('div');
+            container.id = 'fpsContainer';
+            container.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:10000;background:#0a0a0a;overflow:hidden;cursor:none;';
+            const bottomLayer = document.createElement('div');
+            bottomLayer.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;';
+            const TOTAL_ROUNDS = 5, TARGET_R = 30;
+            let currentRound = 0, roundTargets = [], gameOver = false;
+            const roundDisplay = document.createElement('div');
+            roundDisplay.style.cssText = 'position:absolute;bottom:30px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.7);font-size:14px;z-index:3;pointer-events:none;font-family:sans-serif;';
+            roundDisplay.textContent = `第 1/${TOTAL_ROUNDS} 轮`;
+            container.appendChild(roundDisplay);
+            const overlay = document.createElement('div');
+            overlay.id = 'fpsOverlay';
+            overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:#0a0a0a;pointer-events:none;z-index:2;';
+            let holeX = vpW / 2, holeY = vpH / 2;
+            function updateMask() { overlay.style.webkitMaskImage = `radial-gradient(circle ${holeSize}px at ${holeX}px ${holeY}px, transparent ${holeSize}px, black ${holeSize}px)`;
+                overlay.style.maskImage = `radial-gradient(circle ${holeSize}px at ${holeX}px ${holeY}px, transparent ${holeSize}px, black ${holeSize}px)`;
+                overlay.style.webkitMaskSize = '100% 100%';
+                overlay.style.maskSize = '100% 100%'; }
+            updateMask();
+            const keys = {};
+            document.addEventListener('keydown', (e) => { keys[e.key] = true; if (e.key === ' ' || e.key === 'Enter') { e.preventDefault();
+                    shoot(); } });
+            document.addEventListener('keyup', (e) => { keys[e.key] = false; });
+            function updateFromKeys() { if (keys['ArrowLeft'] || keys['a']) holeX -= 5; if (keys['ArrowRight'] || keys['d']) holeX += 5; if (keys['ArrowUp'] || keys['w']) holeY -= 5; if (keys['ArrowDown'] || keys['s']) holeY += 5;
+                holeX = Math.max(0, Math.min(vpW, holeX));
+                holeY = Math.max(0, Math.min(vpH, holeY));
+                updateMask();
+                updateCrosshair(); }
+            if (isMobile) { const ja = document.createElement('div');
+                ja.style.cssText = 'position:absolute;bottom:40px;left:40px;width:120px;height:120px;z-index:5;'; const jb = document.createElement('div');
+                jb.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.3);';
+                ja.appendChild(jb); const js = document.createElement('div');
+                js.id = 'joystickStick';
+                js.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.5);pointer-events:none;';
+                ja.appendChild(js); let jActive = false, jBaseX = 0, jBaseY = 0;
+                ja.addEventListener('touchstart', (e) => { e.preventDefault(); const r = ja.getBoundingClientRect();
+                    jBaseX = r.left + r.width / 2;
+                    jBaseY = r.top + r.height / 2;
+                    jActive = true;
+                    updateJoystick(e.touches[0]); });
+                ja.addEventListener('touchmove', (e) => { e.preventDefault(); if (jActive) updateJoystick(e.touches[0]); });
+                ja.addEventListener('touchend', () => { jActive = false;
+                    js.style.transform = 'translate(-50%, -50%)'; });
+                function updateJoystick(t) { const dx = t.clientX - jBaseX, dy = t.clientY - jBaseY; const dist = Math.sqrt(dx * dx + dy * dy); const maxD = 40, cd = Math.min(dist, maxD); const ang = Math.atan2(dy, dx);
+                    js.style.left = (60 + Math.cos(ang) * cd) + 'px';
+                    js.style.top = (60 + Math.sin(ang) * cd) + 'px'; if (dist > 5) { holeX += Math.cos(ang) * (cd / maxD) * 6;
+                        holeY += Math.sin(ang) * (cd / maxD) * 6;
+                        holeX = Math.max(0, Math.min(vpW, holeX));
+                        holeY = Math.max(0, Math.min(vpH, holeY));
+                        updateMask();
+                        updateCrosshair(); } }
+                container.appendChild(ja); const sb = document.createElement('button');
+                sb.textContent = '🔫';
+                sb.style.cssText = 'position:absolute;bottom:60px;right:40px;width:70px;height:70px;border-radius:50%;border:2px solid rgba(255,255,255,0.4);background:rgba(231,76,60,0.3);color:#fff;font-size:28px;z-index:5;';
+                sb.addEventListener('touchstart', (e) => { e.preventDefault();
+                    e.stopPropagation();
+                    shoot(); });
+                container.appendChild(sb); }
+            const crosshair = document.createElement('div');
+            crosshair.style.cssText = 'position:absolute;top:0;left:0;width:0;height:0;z-index:4;pointer-events:none;';
+            function updateCrosshair() { crosshair.style.left = holeX + 'px';
+                crosshair.style.top = holeY + 'px';
+                crosshair.innerHTML = '<div style="position:absolute;width:30px;height:2px;background:#f1c40f;left:-15px;top:-1px;"></div><div style="position:absolute;width:2px;height:30px;background:#f1c40f;left:-1px;top:-15px;"></div><div style="position:absolute;width:16px;height:16px;border:2px solid #f1c40f;border-radius:50%;left:-8px;top:-8px;"></div>'; }
+            updateCrosshair();
+            container.appendChild(crosshair);
+            function shoot() { if (gameOver) return; for (const t of roundTargets) { const dx = holeX - t.x, dy = holeY - t.y; const dist = Math.sqrt(dx * dx + dy * dy); if (dist < TARGET_R) { if (t.isTarget) { currentRound++; if (currentRound >= TOTAL_ROUNDS) { gameOver = true;
+                                roundDisplay.textContent = '✅ 全部命中！打卡成功';
+                                roundDisplay.style.color = '#4CAF50';
+                                roundDisplay.style.fontSize = '20px';
+                                roundDisplay.style.fontWeight = 'bold';
+                                roundDisplay.style.zIndex = '20';
+                                console.log('[DEBUG] n关成功 - currentLevel:', currentLevel, 'modalOpen:', modalOpen, 'totalLevels:', totalLevels);
+                                setTimeout(() => { 
+                                    cleanup(); 
+                                    console.log('[DEBUG] cleanup完成，即将调用handleSuccess, modalOpen:', modalOpen);
+                                    handleSuccess(); 
+                                    console.log('[DEBUG] handleSuccess执行完毕, currentLevel:', currentLevel);
+                                }, 800);
+                                } else { roundDisplay.textContent = `第 ${currentRound + 1}/${TOTAL_ROUNDS} 轮`;
+                                roundTargets = generateRound(); } } else { gameOver = true;
+                            cleanup();
+                            handleFail('目标错误'); } return; } } }
+            function generateRound() { bottomLayer.innerHTML = ''; const count = 4 + currentRound * 2; const targetIndex = Math.floor(Math.random() * count); const targets = []; for (let i = 0; i < count; i++) { let x, y, placed; for (let a = 0; a < 200; a++) { x = 50 + Math.random() * (vpW - 100);
+                        y = 50 + Math.random() * (vpH - 100);
+                        placed = true; for (const t of targets) { if (Math.abs(t.x - x) < TARGET_R * 3 && Math.abs(t.y - y) < TARGET_R * 3) { placed = false; break; } } if (placed) break; } if (!placed) { x = 50 + Math.random() * (vpW - 100);
+                        y = 50 + Math.random() * (vpH - 100); } const isTarget = (i === targetIndex); const el = document.createElement('div');
+                    el.style.cssText = `position:absolute;left:${x-TARGET_R}px;top:${y-TARGET_R}px;width:${TARGET_R*2}px;height:${TARGET_R*2}px;border-radius:50%;border:3px solid ${isTarget?'#4CAF50':'#e74c3c'};background:${isTarget?'rgba(76,175,80,0.3)':'rgba(231,76,60,0.3)'};z-index:1;`; const inner = document.createElement('div');
+                    inner.style.cssText = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:${TARGET_R*0.5}px;height:${TARGET_R*0.5}px;border-radius:50%;background:${isTarget?'#4CAF50':'#e74c3c'};`;
+                    el.appendChild(inner); const label = document.createElement('div');
+                    label.style.cssText = `position:absolute;top:${y+TARGET_R+5}px;left:${x}px;transform:translateX(-50%);color:#fff;font-size:10px;font-family:sans-serif;pointer-events:none;`;
+                    label.textContent = isTarget ? '下班' : '加班';
+                    bottomLayer.appendChild(el);
+                    bottomLayer.appendChild(label);
+                    targets.push({ x, y, el, isTarget }); } return targets; }
+            roundTargets = generateRound();
+            function cleanup() { document.removeEventListener('keydown', () => {});
+                document.removeEventListener('keyup', () => {}); if (container.parentNode) container.remove(); }
+            container.appendChild(bottomLayer);
+            container.appendChild(overlay);
+            document.body.appendChild(container); const keyLoop = setInterval(() => { if (gameOver) { clearInterval(keyLoop); return; }
+                updateFromKeys(); }, 16);
+            levelTimers.push({ type: 'cleanup', fn: cleanup });
+            levelTimers.push({ type: 'interval', id: keyLoop });
+        }
+
+        // =============================================
+        // o - 老板巡逻潜行
+        // =============================================
+        function renderBossPatrol(box) {
+            closeModal();
+            modalOpen = true;
+            const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth < 768);
+            const vpW = isMobile ? window.innerWidth : window.innerWidth / 2;
+            const vpH = isMobile ? window.innerHeight : window.innerHeight;
+            const container = document.createElement('div');
+            container.style.cssText = `position:fixed;top:0 ;left:${isMobile ? '0' : '25%'};width:${vpW}px;height:${vpH}px;z-index:10000;background:#1a1a2e;overflow:hidden;${isMobile ? '' : 'border:2px solid #333;border-radius:12px;'}`;
+            const PLAYER_R = 12;
+            let playerX = vpW / 2, playerY = vpH - 60, gameOver = false, playerVisible = false, hp = 4, invincible = 0;
+            const hpDisplay = document.createElement('div');
+            hpDisplay.style.cssText = 'position:absolute;top:20px;left:50%;transform:translateX(-50%);color:#fff;font-size:20px;z-index:5;pointer-events:none;font-family:sans-serif;';
+            hpDisplay.textContent = '❤️❤️❤️❤️';
+            container.appendChild(hpDisplay);
+            window._doorX = 40 + Math.random() * (vpW - 140);
+            window._doorY = 40 + Math.random() * (vpH - 140);
+            const doorEl = document.createElement('div');
+            doorEl.style.cssText = `position:absolute;left:${window._doorX}px;top:${window._doorY}px;width:100px;height:80px;background:rgba(76,175,80,0.3);border:3px solid #4CAF50;border-radius:10px;z-index:1;text-align:center;line-height:80px;font-size:30px;animation:doorGlow 1s infinite alternate;`;
+            doorEl.textContent = '🚪';
+            container.appendChild(doorEl);
+            const glowStyle = document.createElement('style');
+            glowStyle.textContent = '@keyframes doorGlow{from{box-shadow:0 0 15px rgba(76,175,80,0.3)}to{box-shadow:0 0 35px rgba(76,175,80,0.8)}}';
+            container.appendChild(glowStyle);
+            const bosses = [
+                { x: vpW * 0.2, y: vpH * 0.3, dx: 1.5, dy: 1, patrol: [vpW * 0.1, vpH * 0.15, vpW * 0.4, vpH * 0.5] },
+                { x: vpW * 0.7, y: vpH * 0.5, dx: -1, dy: 1.2, patrol: [vpW * 0.5, vpH * 0.35, vpW * 0.85, vpH * 0.7] },
+            ];
+            const LIGHT_RANGE = 180, LIGHT_ANGLE = Math.PI / 4;
+            const canvas = document.createElement('canvas');
+            canvas.width = vpW;
+            canvas.height = vpH;
+            canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;';
+            const ctx = canvas.getContext('2d');
+            container.appendChild(canvas);
+            const hint = document.createElement('div');
+            hint.style.cssText = 'position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.5);font-size:12px;z-index:4;pointer-events:none;font-family:sans-serif;';
+            hint.textContent = isMobile ? '摇杆移动 | 走到门前按出门' : '方向键/WASD移动 | 走到门前按空格';
+            container.appendChild(hint);
+            const keys = {};
+            function onKeyDown(e) { keys[e.key] = true; if (e.key === ' ' || e.key === 'Enter') { e.preventDefault();
+                    tryExit(); } }
+            function onKeyUp(e) { keys[e.key] = false; }
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+            function updatePlayer() { if (gameOver) return; let mx = 0, my = 0; if (keys['ArrowLeft'] || keys['a']) mx -= 1; if (keys['ArrowRight'] || keys['d']) mx += 1; if (keys['ArrowUp'] || keys['w']) my -= 1; if (keys['ArrowDown'] || keys['s']) my += 1; if (mx !== 0 || my !== 0) { const len = Math.sqrt(mx * mx + my * my);
+                    playerX += (mx / len) * 3;
+                    playerY += (my / len) * 3;
+                    playerX = Math.max(PLAYER_R, Math.min(vpW - PLAYER_R, playerX));
+                    playerY = Math.max(PLAYER_R, Math.min(vpH - PLAYER_R, playerY)); } }
+            function tryExit() { if (gameOver) return; const dx = playerX - (window._doorX + 50), dy = playerY - (window._doorY + 40); const dist = Math.sqrt(dx * dx + dy * dy); if (dist < 60) { gameOver = true;
+                    cleanup();
+                    handleSuccess(); } }
+            if (isMobile) { const ja = document.createElement('div');
+                ja.style.cssText = 'position:absolute;bottom:40px;left:40px;width:120px;height:120px;z-index:5;'; const jb = document.createElement('div');
+                jb.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.3);';
+                ja.appendChild(jb); const js = document.createElement('div');
+                js.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.5);pointer-events:none;';
+                ja.appendChild(js); let jActive = false, jBaseX = 0, jBaseY = 0, joyDX = 0, joyDY = 0;
+                function onTouchStart(e) { e.preventDefault(); const r = ja.getBoundingClientRect();
+                    jBaseX = r.left + r.width / 2;
+                    jBaseY = r.top + r.height / 2;
+                    jActive = true;
+                    updateJoy(e.touches[0]); }
+                function onTouchMove(e) { e.preventDefault(); if (jActive) updateJoy(e.touches[0]); }
+                function onTouchEnd() { jActive = false;
+                    joyDX = 0;
+                    joyDY = 0;
+                    js.style.transform = 'translate(-50%, -50%)'; }
+                ja.addEventListener('touchstart', onTouchStart);
+                ja.addEventListener('touchmove', onTouchMove);
+                ja.addEventListener('touchend', onTouchEnd);
+                function updateJoy(t) { const dx = t.clientX - jBaseX, dy = t.clientY - jBaseY; const dist = Math.sqrt(dx * dx + dy * dy); const maxD = 40, cd = Math.min(dist, maxD); const ang = Math.atan2(dy, dx);
+                    js.style.left = (60 + Math.cos(ang) * cd) + 'px';
+                    js.style.top = (60 + Math.sin(ang) * cd) + 'px';
+                    joyDX = dist > 5 ? Math.cos(ang) * (cd / maxD) : 0;
+                    joyDY = dist > 5 ? Math.sin(ang) * (cd / maxD) : 0; } const mobileMove = setInterval(() => { if (gameOver) { clearInterval(mobileMove); return; } if (joyDX !== 0 || joyDY !== 0) { playerX += joyDX * 3;
+                        playerY += joyDY * 3;
+                        playerX = Math.max(PLAYER_R, Math.min(vpW - PLAYER_R, playerX));
+                        playerY = Math.max(PLAYER_R, Math.min(vpH - PLAYER_R, playerY)); } }, 16);
+                levelTimers.push({ type: 'interval', id: mobileMove });
+                container.appendChild(ja); const exitActionBtn = document.createElement('button');
+                exitActionBtn.textContent = '🚪 出门';
+                exitActionBtn.style.cssText = 'position:absolute;bottom:60px;right:40px;width:70px;height:70px;border-radius:50%;border:2px solid #4CAF50;background:rgba(76,175,80,0.3);color:#fff;font-size:14px;z-index:5;font-weight:bold;';
+                exitActionBtn.addEventListener('touchstart', (e) => { e.preventDefault();
+                    e.stopPropagation();
+                    tryExit(); });
+                container.appendChild(exitActionBtn); }
+
+            function gameLoop() {
+                if (gameOver) return;
+                updatePlayer(); if (invincible > 0) invincible--;
+                for (const boss of bosses) { boss.x += boss.dx;
+                    boss.y += boss.dy; const [px1, py1, px2, py2] = boss.patrol; if (boss.x < px1 || boss.x > px2) boss.dx *= -1; if (boss.y < py1 || boss.y > py2) boss.dy *= -1;
+                    boss.x = Math.max(px1, Math.min(px2, boss.x));
+                    boss.y = Math.max(py1, Math.min(py2, boss.y)); }
+                playerVisible = false; if (invincible <= 0) { for (const boss of bosses) { const dx = playerX - boss.x, dy = playerY - boss.y; const dist = Math.sqrt(dx * dx + dy * dy); if (dist < LIGHT_RANGE) { const bossAngle = Math.atan2(boss.dy, boss.dx); const playerAngle = Math.atan2(dy, dx); let angleDiff = playerAngle - bossAngle; while (angleDiff > Math.PI) angleDiff -= Math.PI * 2; while (angleDiff < -Math.PI) angleDiff += Math.PI * 2; if (Math.abs(angleDiff) < LIGHT_ANGLE) { playerVisible = true; break; } } } }
+                if (playerVisible) { hp--;
+                    invincible = 60; const hearts = ['💀', '❤️', '❤️❤️', '❤️❤️❤️', '❤️❤️❤️❤️'];
+                    hpDisplay.textContent = hearts[hp] || '💀'; if (hp <= 0) { gameOver = true;
+                        cleanup();
+                        handleFail('被发现了'); return; }
+                    playerX = vpW / 2;
+                    playerY = vpH - 60;
+                    playerVisible = false;
+                    window._doorX = 40 + Math.random() * (vpW - 140);
+                    window._doorY = 40 + Math.random() * (vpH - 140);
+                    doorEl.style.left = window._doorX + 'px';
+                    doorEl.style.top = window._doorY + 'px'; }
+                ctx.clearRect(0, 0, vpW, vpH);
+                ctx.fillStyle = 'rgba(10,10,30,0.85)';
+                ctx.fillRect(0, 0, vpW, vpH); for (const boss of bosses) { const bossAngle = Math.atan2(boss.dy, boss.dx);
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(boss.x, boss.y);
+                    ctx.arc(boss.x, boss.y, LIGHT_RANGE, bossAngle - LIGHT_ANGLE, bossAngle + LIGHT_ANGLE);
+                    ctx.closePath();
+                    ctx.clip();
+                    ctx.fillStyle = 'rgba(255,255,200,0.15)';
+                    ctx.fillRect(0, 0, vpW, vpH);
+                    ctx.restore(); } for (const boss of bosses) { ctx.fillStyle = '#e74c3c';
+                    ctx.beginPath();
+                    ctx.arc(boss.x, boss.y, 18, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '20px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('👔', boss.x, boss.y + 7); }
+                ctx.fillStyle = invincible > 0 ? 'rgba(76,175,80,0.5)' : '#4CAF50';
+                ctx.beginPath();
+                ctx.arc(playerX, playerY, PLAYER_R, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.font = '14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('👤', playerX, playerY + 5);
+                requestAnimationFrame(gameLoop);
+            }
+            requestAnimationFrame(gameLoop);
+            function cleanup() { document.removeEventListener('keydown', onKeyDown);
+                document.removeEventListener('keyup', onKeyUp); if (container.parentNode) container.remove(); }
+            container.appendChild(canvas);
+            document.body.appendChild(container); const keyLoop = setInterval(() => { if (gameOver) { clearInterval(keyLoop); return; }
+                updatePlayer(); }, 16);
+            levelTimers.push({ type: 'cleanup', fn: cleanup });
+            levelTimers.push({ type: 'interval', id: keyLoop });
+        }
+
+        // =============================================
+        // p - 会议弹幕风暴
+        // =============================================
+        function renderMeetingStorm(box) {
+            closeModal();
+            modalOpen = true;
+            const vpW = window.innerWidth, vpH = window.innerHeight;
+            const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth < 768);
+            const container = document.createElement('div');
+            container.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:10000;background:#0d0d1a;overflow:hidden;';
+            const PLAYER_W = 30, PLAYER_H = 30;
+            let playerX = vpW / 2, playerY = vpH / 2, gameOver = false, survived = 0, hp = 3, invincible = 0;
+            const SURVIVE_TIME = 1800;
+            const hpDisplay = document.createElement('div');
+            hpDisplay.style.cssText = 'position:absolute;top:45px;left:50%;transform:translateX(-50%);color:#fff;font-size:16px;z-index:5;pointer-events:none;font-family:sans-serif;';
+            hpDisplay.textContent = '❤️❤️❤️';
+            container.appendChild(hpDisplay);
+            const exitW = 130, exitH = 55;
+            let exitX = vpW - exitW - 30, exitY = vpH / 2 - exitH / 2;
+            const exitBtn = document.createElement('button');
+            exitBtn.textContent = '🏠 打卡下班';
+            exitBtn.style.cssText = `position:absolute;left:${exitX}px;top:${exitY}px;width:${exitW}px;height:${exitH}px;background:#4CAF50;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:bold;z-index:3;cursor:pointer;box-shadow:0 0 20px rgba(76,175,80,0.5);animation:exitPulse 0.8s infinite alternate;`;
+            const resultMsg = document.createElement('div');
+            resultMsg.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:24px;font-weight:bold;z-index:10;pointer-events:none;font-family:sans-serif;display:none;';
+            container.appendChild(resultMsg);
+            exitBtn.addEventListener('click', (e) => { e.stopPropagation(); if (!gameOver && survived >= SURVIVE_TIME) { gameOver = true;
+                    resultMsg.textContent = '✅ 打卡成功';
+                    resultMsg.style.color = '#4CAF50';
+                    resultMsg.style.display = 'block';
+                    setTimeout(() => { cleanup();
+                        handleSuccess(); }, 800); } });
+            container.appendChild(exitBtn);
+            const exitStyle = document.createElement('style');
+            exitStyle.textContent = '@keyframes exitPulse{from{box-shadow:0 0 20px rgba(76,175,80,0.5)}to{box-shadow:0 0 40px rgba(76,175,80,0.9)}}';
+            container.appendChild(exitStyle);
+            const meetings = [];
+            const MEETING_W = 140, MEETING_H = 40;
+            const meetingNames = ['周例会', '需求评审', '技术分享', '1对1沟通', '项目复盘', '迭代规划', '站会', '脑暴会', '进度同步', '风险评估', '代码审查', '产品宣讲', '跨部门协调', '季度OKR', '预算审批', '团建策划', '新人培训', '架构讨论', '上线评审', '客户演示'];
+
+            function spawnMeeting() { const name = meetingNames[Math.floor(Math.random() * meetingNames.length)]; const y = Math.random() * (vpH - MEETING_H); const speed = 0.6 + Math.random() * 2.5 + Math.min(survived, 1200) * 0.001; return { x: vpW + Math.random() * 200, y, speed, name, color: ['#e74c3c', '#e67e22', '#9b59b6', '#3498db', '#1abc9c'][Math.floor(Math.random() * 5)] }; }
+            for (let i = 0; i < 3; i++) { const m = spawnMeeting();
+                m.x = Math.random() * vpW;
+                meetings.push(m); }
+            const canvas = document.createElement('canvas');
+            canvas.width = vpW;
+            canvas.height = vpH;
+            canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;';
+            const ctx = canvas.getContext('2d');
+            container.appendChild(canvas);
+            const progressBar = document.createElement('div');
+            progressBar.style.cssText = 'position:absolute;top:15px;left:50%;transform:translateX(-50%);width:200px;height:8px;background:rgba(255,255,255,0.1);border-radius:4px;z-index:5;overflow:hidden;';
+            const progressFill = document.createElement('div');
+            progressFill.style.cssText = 'height:100%;width:0%;background:#4CAF50;border-radius:4px;transition:width 0.1s;';
+            progressBar.appendChild(progressFill);
+            container.appendChild(progressBar);
+            const progressText = document.createElement('div');
+            progressText.style.cssText = 'position:absolute;top:28px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.5);font-size:11px;z-index:5;font-family:sans-serif;';
+            progressText.textContent = '系统处理中...';
+            container.appendChild(progressText);
+            const hint = document.createElement('div');
+            hint.style.cssText = 'position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.4);font-size:11px;z-index:4;pointer-events:none;font-family:sans-serif;';
+            hint.textContent = isMobile ? '摇杆移动' : '方向键/WASD移动';
+            container.appendChild(hint);
+            const keys = {};
+            function onKeyDown(e) { keys[e.key] = true; }
+            function onKeyUp(e) { keys[e.key] = false; }
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+            function updatePlayer() { if (gameOver) return; let mx = 0, my = 0; if (keys['ArrowLeft'] || keys['a']) mx -= 1; if (keys['ArrowRight'] || keys['d']) mx += 1; if (keys['ArrowUp'] || keys['w']) my -= 1; if (keys['ArrowDown'] || keys['s']) my += 1; if (mx !== 0 || my !== 0) { const len = Math.sqrt(mx * mx + my * my);
+                    playerX += (mx / len) * 3.5;
+                    playerY += (my / len) * 3.5;
+                    playerX = Math.max(PLAYER_W / 2, Math.min(vpW - PLAYER_W / 2, playerX));
+                    playerY = Math.max(PLAYER_H / 2, Math.min(vpH - PLAYER_H / 2, playerY)); } }
+            if (isMobile) { const ja = document.createElement('div');
+                ja.style.cssText = 'position:absolute;bottom:40px;left:40px;width:120px;height:120px;z-index:5;'; const jb = document.createElement('div');
+                jb.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.3);';
+                ja.appendChild(jb); const js = document.createElement('div');
+                js.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.5);pointer-events:none;';
+                ja.appendChild(js); let jActive = false, jBaseX = 0, jBaseY = 0, joyDX = 0, joyDY = 0;
+                function onTouchStart(e) { e.preventDefault(); const r = ja.getBoundingClientRect();
+                    jBaseX = r.left + r.width / 2;
+                    jBaseY = r.top + r.height / 2;
+                    jActive = true;
+                    updateJoy(e.touches[0]); }
+                function onTouchMove(e) { e.preventDefault(); if (jActive) updateJoy(e.touches[0]); }
+                function onTouchEnd() { jActive = false;
+                    joyDX = 0;
+                    joyDY = 0;
+                    js.style.transform = 'translate(-50%, -50%)'; }
+                ja.addEventListener('touchstart', onTouchStart);
+                ja.addEventListener('touchmove', onTouchMove);
+                ja.addEventListener('touchend', onTouchEnd);
+                function updateJoy(t) { const dx = t.clientX - jBaseX, dy = t.clientY - jBaseY; const dist = Math.sqrt(dx * dx + dy * dy); const maxD = 40, cd = Math.min(dist, maxD); const ang = Math.atan2(dy, dx);
+                    js.style.left = (60 + Math.cos(ang) * cd) + 'px';
+                    js.style.top = (60 + Math.sin(ang) * cd) + 'px';
+                    joyDX = dist > 5 ? Math.cos(ang) * (cd / maxD) : 0;
+                    joyDY = dist > 5 ? Math.sin(ang) * (cd / maxD) : 0; } const mobileMove = setInterval(() => { if (gameOver) { clearInterval(mobileMove); return; } if (joyDX !== 0 || joyDY !== 0) { playerX += joyDX * 3.5;
+                        playerY += joyDY * 3.5;
+                        playerX = Math.max(PLAYER_W / 2, Math.min(vpW - PLAYER_W / 2, playerX));
+                        playerY = Math.max(PLAYER_H / 2, Math.min(vpH - PLAYER_H / 2, playerY)); } }, 16);
+                levelTimers.push({ type: 'interval', id: mobileMove });
+                container.appendChild(ja); }
+
+            function gameLoop() {
+                if (gameOver) return;
+                updatePlayer();
+                survived++; if (invincible > 0) invincible--;
+                const pct = Math.min(100, (survived / SURVIVE_TIME) * 100);
+                progressFill.style.width = pct + '%'; const remaining = Math.max(0, Math.ceil((SURVIVE_TIME - survived) / 60));
+                progressText.textContent = remaining > 0 ? `请等待 ${remaining} 秒` : '请点击下班按钮'; if (survived >= SURVIVE_TIME) { exitBtn.style.boxShadow = '0 0 50px rgba(76,175,80,1)';
+                    exitBtn.style.fontSize = '18px';
+                    exitBtn.style.opacity = '1';
+                    exitBtn.textContent = '🏠 打卡下班'; } else { exitBtn.style.opacity = '0.5';
+                    exitBtn.textContent = '🔒 ' + remaining + 's'; } const spawnRate = Math.min(0.035, 0.015 + survived * 0.0001); if (Math.random() < spawnRate) meetings.push(spawnMeeting()); for (let i = meetings.length - 1; i >= 0; i--) { meetings[i].x -= meetings[i].speed; if (meetings[i].x < -MEETING_W - 100) meetings.splice(i, 1); } if (invincible <= 0) { for (const m of meetings) { if (playerX - PLAYER_W / 2 < m.x + MEETING_W && playerX + PLAYER_W / 2 > m.x && playerY - PLAYER_H / 2 < m.y + MEETING_H && playerY + PLAYER_H / 2 > m.y) { hp--;
+                        invincible = 90; const hearts = ['💀', '❤️', '❤️❤️', '❤️❤️❤️'];
+                        hpDisplay.textContent = hearts[hp] || '💀'; if (hp <= 0) { gameOver = true;
+                            resultMsg.textContent = '❌ 系统异常';
+                            resultMsg.style.color = '#e74c3c';
+                            resultMsg.style.display = 'block';
+                            setTimeout(() => { cleanup();
+                                handleFail('系统异常'); }, 800); return; }
+                        playerX = vpW / 2;
+                        playerY = vpH / 2; break; } } } if (survived >= SURVIVE_TIME && playerX - PLAYER_W / 2 < exitX + exitW && playerX + PLAYER_W / 2 > exitX && playerY - PLAYER_H / 2 < exitY + exitH && playerY + PLAYER_H / 2 > exitY) { gameOver = true;
+                    resultMsg.textContent = '✅ 打卡成功';
+                    resultMsg.style.color = '#4CAF50';
+                    resultMsg.style.display = 'block';
+                    setTimeout(() => { cleanup();
+                        handleSuccess(); }, 800); return; }
+                ctx.clearRect(0, 0, vpW, vpH);
+                ctx.fillStyle = 'rgba(13,13,26,0.3)';
+                ctx.fillRect(0, 0, vpW, vpH); for (const m of meetings) { ctx.fillStyle = m.color;
+                    ctx.fillRect(m.x, m.y, MEETING_W, MEETING_H);
+                    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(m.x, m.y, MEETING_W, MEETING_H);
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 13px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('📋 ' + m.name, m.x + MEETING_W / 2, m.y + MEETING_H / 2 + 5); }
+                ctx.fillStyle = invincible > 0 ? 'rgba(241,196,15,0.5)' : '#f1c40f';
+                ctx.beginPath();
+                ctx.arc(playerX, playerY, PLAYER_W / 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.font = '14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('👤', playerX, playerY + 5);
+                requestAnimationFrame(gameLoop);
+            }
+            requestAnimationFrame(gameLoop);
+            function cleanup() { document.removeEventListener('keydown', onKeyDown);
+                document.removeEventListener('keyup', onKeyUp); if (container.parentNode) container.remove(); }
+            container.appendChild(canvas);
+            document.body.appendChild(container); const keyLoop = setInterval(() => { if (gameOver) { clearInterval(keyLoop); return; }
+                updatePlayer(); }, 16);
+            levelTimers.push({ type: 'cleanup', fn: cleanup });
+            levelTimers.push({ type: 'interval', id: keyLoop });
+        }
+
+        // =============================================
+        // q - 重力抽屉
+        // =============================================
+        function renderGravityDrawer(box) {
+            const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth < 768);
+            box.innerHTML = '';
+            box.style.cssText = 'position:fixed;top:50%;left:50%;width:300px;height:240px;transform:translate(-50%,-50%) rotate(0deg);border-radius:16px;background:#2c3e50;overflow:visible;box-shadow:0 10px 40px rgba(0,0,0,.35);z-index:1001;cursor:grab;user-select:none;';
+            const BOX_W = 300, BOX_H = 240, BTN_W = 100, BTN_H = 38;
+            let currentAngle = 0, isDragging = false, gameOver = false;
+            let dragStartX = 0, dragStartY = 0, dragCenterX = 0, dragCenterY = 0, dragStartAngle = 0;
+            const TOTAL = 6;
+            const targetIndex = Math.floor(Math.random() * TOTAL);
+            const drawers = [];
+            const railLayer = document.createElement('div');
+            railLayer.style.cssText = 'position:absolute;inset:0;overflow:visible;z-index:1;';
+            box.appendChild(railLayer);
+            const mask = document.createElement('div');
+            mask.style.cssText = 'position:absolute;inset:0;border-radius:16px;background:#2c3e50;z-index:3;pointer-events:none;';
+            box.appendChild(mask);
+            const title = document.createElement('div');
+            title.textContent = '📋 考勤面板';
+            title.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:18px;font-weight:bold;z-index:4;pointer-events:none;';
+            box.appendChild(title);
+            const config = [
+                { edge: 'top', slot: -1 }, { edge: 'top', slot: 1 }, { edge: 'bottom', slot: -1 }, { edge: 'bottom', slot: 1 }, { edge: 'left' }, { edge: 'right' }
+            ];
+            const V_BTN_W = 38, V_BTN_H = 100;
+            for (let i = 0; i < TOTAL; i++) { const c = config[i]; const isTarget = i === targetIndex; const btn = document.createElement('button');
+                const isVertical = (c.edge === 'top' || c.edge === 'bottom');
+                const bw = isVertical ? V_BTN_W : BTN_W;
+                const bh = isVertical ? V_BTN_H : BTN_H;
+                btn.textContent = isTarget ? '🏠 打卡下班' : '💼 自愿加班';
+                btn.style.cssText = `position:absolute;width:${bw}px;height:${bh}px;border:none;border-radius:6px;background:#4CAF50;color:#fff;font-size:${isVertical ? '11' : '12'}px;font-weight:bold;cursor:pointer;z-index:2;${isVertical ? 'writing-mode:vertical-rl;letter-spacing:2px;' : ''}`;
+                btn.onclick = e => { e.stopPropagation(); if (gameOver || isDragging) return;
+                    gameOver = true;
+                    cleanup(); if (isTarget) handleSuccess(); else handleFail('选择错误'); };
+                railLayer.appendChild(btn);
+                drawers.push({ btn, edge: c.edge, slot: c.slot || 0, bw, bh }); }
+
+            function updateDrawers(angleDeg) { const rad = angleDeg * Math.PI / 180; const gx = Math.sin(rad); const gy = Math.cos(rad); for (const d of drawers) { let ox = 0, oy = 0, baseX = 0, baseY = 0, reveal = 0; switch (d.edge) { case 'top': ox = 0;
+                        oy = -1;
+                        baseX = BOX_W / 2 + d.slot * 50 - d.bw / 2;
+                        baseY = 0; reveal = d.bh - 5; break; case 'bottom': ox = 0;
+                        oy = 1;
+                        baseX = BOX_W / 2 + d.slot * 50 - d.bw / 2;
+                        baseY = BOX_H - d.bh; reveal = d.bh - 5; break; case 'left': ox = -1;
+                        oy = 0;
+                        baseX = 0;
+                        baseY = BOX_H / 2 - d.bh / 2; reveal = d.bw - 5; break; case 'right': ox = 1;
+                        oy = 0;
+                        baseX = BOX_W - d.bw;
+                        baseY = BOX_H / 2 - d.bh / 2; reveal = d.bw - 5; break; } let dot = ox * gx + oy * gy;
+                    dot = Math.max(0, dot); const slide = dot * reveal;
+                    d.btn.style.left = `${baseX + ox * slide}px`;
+                    d.btn.style.top = `${baseY + oy * slide}px`; } }
+
+            function getCenter() { const r = box.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
+            if (!isMobile) { box.onmousedown = e => { if (e.target.closest('button')) return;
+                    isDragging = true; const c = getCenter();
+                    dragCenterX = c.x;
+                    dragCenterY = c.y;
+                    dragStartX = e.clientX;
+                    dragStartY = e.clientY;
+                    dragStartAngle = currentAngle; };
+                document.onmousemove = e => { if (!isDragging) return; const a1 = Math.atan2(dragStartY - dragCenterY, dragStartX - dragCenterX); const a2 = Math.atan2(e.clientY - dragCenterY, e.clientX - dragCenterX);
+                    currentAngle = dragStartAngle + (a2 - a1) * 180 / Math.PI;
+                    box.style.transform = `translate(-50%,-50%) rotate(${currentAngle}deg)`;
+                    updateDrawers(currentAngle); };
+                document.onmouseup = () => (isDragging = false); }
+            if (isMobile && window.DeviceOrientationEvent) { box.style.width = 'min(92vw, 320px)';
+                box.style.height = '200px';
+                box.style.borderRadius = '14px'; let tiltX = 0, tiltY = 0; const SMOOTH = 0.12;
+                function handleTilt(e) { if (gameOver) return; let gx = e.gamma || 0; let gy = e.beta || 0;
+                    gx = Math.max(-45, Math.min(45, gx));
+                    gy = Math.max(-45, Math.min(45, gy)); const targetX = gx / 45; const targetY = gy / 45;
+                    tiltX += (targetX - tiltX) * SMOOTH;
+                    tiltY += (targetY - tiltY) * SMOOTH;
+                    currentAngle = Math.atan2(tiltX, tiltY) * 180 / Math.PI;
+                    updateDrawers(currentAngle); } if (typeof DeviceOrientationEvent.requestPermission === 'function') { document.addEventListener('touchstart', function init() { DeviceOrientationEvent.requestPermission().then(state => { if (state === 'granted') window.addEventListener('deviceorientation', handleTilt); }).catch(() => {}); }, { once: true }); } else { window.addEventListener('deviceorientation', handleTilt); }
+                }
+            updateDrawers(0);
+            
+            function cleanup() {
+                window.removeEventListener('deviceorientation', handleTilt);
+                const modalBox = document.getElementById('modalBox');
+                if (modalBox) {
+                    modalBox.style.cssText = '';
+                }
+            }
+
+            levelTimers.push({ type: 'cleanup', fn: cleanup });
+        }
+
+        // =============================================
+        // 初始化
+        // =============================================
+        function init() {
+            generateLevels();
+            updateStatusDisplay();
+            document.getElementById('modalOverlay').addEventListener('click', function(e) {
+                if (e.target === this) { e.stopPropagation(); }
+            });
+        }
+        init();
+    </script>
+</body>
+</html>
